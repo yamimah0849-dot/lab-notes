@@ -80,9 +80,36 @@ style), 9V batteries, multimeter, soldering iron, resistors, LEDs, capacitors, d
 XP, ranks, a daily streak, a "20 minutes today" goal, a dashboard of finished and next lessons,
 local save, and Export/Import backup.
 
+## Files
+- `index.html`: page shell (top bar, footer, script tags). New `data/module-N.js` files need a script tag here.
+- `css/style.css`: all styling. Colors are variables in `:root`.
+- `js/store.js`: progress in localStorage (key `labnotes.progress.v1`), XP, ranks, streak, study timer, export/import.
+- `js/mascot.js`: Dr. Ohmi as inline SVG (moods: idle, happy, shock, think, proud) and all of Ohmi's lines.
+- `js/breadboard.js`: interactive breadboard diagrams. Holes `a1`..`j20`, rails `tn`/`tp` (top -/+), `bp`/`bn` (bottom +/-).
+  Parts: `wire {from,to,color,arc}`, `lead {hole,color,label}` (wire coming from off the board), `resistor {from,to,bands}`, `led {anode,cathode,color,lit}`.
+- `js/app.js`: hash router (`#/`, `#/module/N`, `#/lesson/ID`, `#/backup`), pages, quiz, overlays (MISSION COMPLETE, rank up, goal), Ask Claude.
+- `data/course.js`: the course map (all modules + lesson titles, which phase builds them) and the kit list.
+- `data/module-N.js`: lesson content. A lesson is playable once its id has content here.
+- `start-lab.bat`: double-click to run the app on the laptop (starts Python's web server, opens the browser).
+
+## Lesson format (example: `data/module-0.js`)
+`{ minutes, intro, summary, sections, search, videos, quiz, challenges }`
+- `sections`: `{title, html}` or `{type: 'jargon' | 'danger' | 'tip' | 'breadboard', ...}`
+- `videos`: `{title, channel, url, desc}`. Verify every video before adding it:
+  `https://www.youtube.com/oembed?url=<video url>&format=json` returns the real title and channel if the video exists.
+- `quiz`: `{q, answer, options: [{t, why}], explain}`. `why` explains why a wrong option is wrong.
+- `challenges`: `{type: 'build' | 'sim', title, why, parts, diagram, steps, troubleshoot, link}`
+- XP: correct answer +10 (first time per question), quiz pass +50 (first pass, needs 60%), challenge +40, daily 20-minute goal +30.
+  Ranks at 0 / 300 / 900 / 1800 / 2800 / 4000 XP.
+
+## Git workflow
+Each phase is built on its own branch (e.g. `phase-1-app-shell`). After the learner confirms the phase works,
+merge it into `main` and push. GitHub Pages will publish from `main`.
+
 ## Phases
-- [ ] Setup: folder, Git, CLAUDE.md, GitHub repo, first push  <- in progress
-- [ ] 1. App shell: theme, mascot, dashboard, XP/ranks/streak/goal, export/import, 1 sample lesson
+- [x] Setup: folder, Git, CLAUDE.md, GitHub repo, first push
+- [x] 1. App shell: theme, mascot, dashboard, XP/ranks/streak/goal, export/import, 1 sample lesson
+- [ ] Extra (learner's request): anime-style sound effects + Dr. Ohmi babble voice
 - [ ] 2. Go live: GitHub Pages, iPhone home-screen install, offline
 - [ ] 3. Modules 0-1
 - [ ] 4. Modules 2-3
@@ -94,4 +121,11 @@ local save, and Export/Import backup.
 ## Progress log
 - 2026-11-11: Planned the project and confirmed the kit. Created the folder `Desktop\lab-notes`,
   CLAUDE.md, README.md and .gitignore. Set up Git (name + private email), made the first commit
-  on `main`. Next: the learner creates the GitHub repo and pushes.
+  on `main`. Created the public repo on GitHub and pushed `main` (the learner signed in to Git Credential
+  Manager in the browser, so future pushes need no sign-in).
+- 2026-11-11: Phase 1 built on branch `phase-1-app-shell`: neon lab theme, Dr. Ohmi with 5 moods and jokes,
+  dashboard (rank, streak, 20-minute goal ring, mission map), lesson template, quiz with shocked reactions and
+  MISSION COMPLETE screen, rank-up and goal screens, Backup page (export/import/reset), Ask Claude button,
+  and the first real lesson `m0-2` "Meet the Breadboard" (interactive breadboard, 3 verified videos, 5 questions,
+  build + Tinkercad challenges). Tested in the built-in browser at desktop and phone width.
+  The learner tested it with `start-lab.bat` and confirmed it works; merged to `main` and pushed.

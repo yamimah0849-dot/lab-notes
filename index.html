@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Lab Notes</title>
+  <meta name="description" content="A free, anime-flavored electronics course: from Ohm's law to an Arduino EMG muscle sensor.">
+  <meta name="theme-color" content="#0b0820">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;600;800&display=swap">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/" aria-label="Lab Notes home"><span class="brand-bolt" aria-hidden="true">⚡</span><span class="brand-text">LAB NOTES</span></a>
+    <nav class="nav" aria-label="Main">
+      <a href="#/" data-nav="home">Lab</a>
+      <a href="#/backup" data-nav="backup">Backup</a>
+    </nav>
+    <div class="chips">
+      <span class="chip chip-streak" title="Daily streak (days in a row)">🔥 <b id="chipStreak">0</b></span>
+      <span class="chip chip-goal" title="Minutes studied today (goal: 20)">⏱ <b id="chipGoal">0</b>/20</span>
+      <span class="chip chip-xp" title="Total XP"><b id="chipXp">0</b>&nbsp;XP</span>
+    </div>
+  </header>
+
+  <main id="app" tabindex="-1"></main>
+
+  <footer class="footer">Made with ⚡ for learning · progress is saved on this device · <a href="#/backup">backup</a></footer>
+
+  <div id="overlay-root"></div>
+  <div id="toast-root" aria-live="polite"></div>
+
+  <noscript><p class="card">Lab Notes needs JavaScript turned on.</p></noscript>
+
+  <script src="js/store.js"></script>
+  <script src="js/mascot.js"></script>
+  <script src="js/breadboard.js"></script>
+  <script src="data/course.js"></script>
+  <script src="data/module-0.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
