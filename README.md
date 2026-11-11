@@ -4,8 +4,17 @@ A free, anime-flavored electronics course that runs in your browser. It takes yo
 "what even is voltage?" all the way to building a muscle-signal (EMG) circuit with an Arduino,
 guided by Dr. Ohmi, a slightly chaotic lab assistant.
 
-- **Live app:** coming in Phase 2 at https://yamimah0849-dot.github.io/lab-notes/
-- **Status:** under construction. See [CLAUDE.md](CLAUDE.md) for the plan and progress log.
+**Open the app:** https://yamimah0849-dot.github.io/lab-notes/
+
+See [CLAUDE.md](CLAUDE.md) for the plan and progress log.
+
+## Put it on your iPhone
+1. Open the link above in **Safari**.
+2. Tap **Share** (the square with an arrow pointing up).
+3. Tap **Add to Home Screen**, then **Add**.
+
+It works offline after the first visit. The home-screen app keeps its own progress;
+use **Settings → Export / Import** to move progress between devices.
 
 ## Run it on your laptop (Windows)
 

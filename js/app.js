@@ -17,6 +17,9 @@
   const overlayRoot = document.getElementById('overlay-root');
   const toastRoot = document.getElementById('toast-root');
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  const isStandalone = () => window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  let installPrompt = null; // Chrome/Edge hand us this when the app can be installed
 
   const $ = (sel, root) => (root || document).querySelector(sel);
   const $$ = (sel, root) => Array.from((root || document).querySelectorAll(sel));
@@ -629,6 +632,12 @@
       </section>
 
       <section class="card prose">
+        <p class="eyebrow">Install</p>
+        <h1>📲 Put the lab on your home screen</h1>
+        ${installHtml()}
+      </section>
+
+      <section class="card prose">
         <p class="eyebrow">Keep your progress safe</p>
         <h1>💾 Backup &amp; restore</h1>
         <p>Your XP, streak and finished lessons are saved <b>inside this browser, on this device</b>. Nothing is uploaded anywhere. That keeps the app free, but it means:</p>
@@ -665,6 +674,16 @@
       };
     });
     $$('[data-sound]').forEach((b) => { b.onclick = () => SFX.play(b.getAttribute('data-sound')); });
+    const installBtn = $('[data-install]');
+    if (installBtn) {
+      installBtn.onclick = async () => {
+        if (!installPrompt) return;
+        installPrompt.prompt();
+        await installPrompt.userChoice;
+        installPrompt = null;
+        installBtn.hidden = true;
+      };
+    }
     $('[data-voice]').onclick = () => SFX.babble(pick(['idle', 'happy', 'shock', 'think', 'proud']), 0, 'Hello intern, welcome to my secret lab!');
 
     $('[data-export]').onclick = exportBackup;
@@ -685,10 +704,30 @@
     });
   }
 
+  const STORAGE_NOTE = '<p class="small muted">Heads-up: the installed app keeps its <b>own</b> progress, separate from the browser tab. ' +
+    'To move progress between them, use Export and Import below.</p>';
+
+  function installHtml() {
+    if (isStandalone()) {
+      return '<p>✅ You’re using the installed app. Dr. Ohmi lives on your home screen now!</p>' + STORAGE_NOTE;
+    }
+    if (isIOS) {
+      return `<p>On iPhone, you install it from <b>Safari</b>:</p>
+        <ol class="steps">
+          <li>Open <b>${esc(location.href.split('#')[0])}</b> in Safari.</li>
+          <li>Tap the <b>Share</b> button (the square with an arrow pointing up).</li>
+          <li>Scroll down, tap <b>Add to Home Screen</b>, then tap <b>Add</b>.</li>
+          <li>Open Lab Notes from its new icon. It works offline too!</li>
+        </ol>` + STORAGE_NOTE;
+    }
+    return `<p>You can install Lab Notes as an app on this computer too. It gets its own window and icon, and works offline.</p>
+      <div class="btn-row"><button class="btn btn-primary" type="button" data-install ${installPrompt ? '' : 'hidden'}>📲 Install Lab Notes</button></div>
+      <p class="small muted" data-install-hint ${installPrompt ? 'hidden' : ''}>No button? In Chrome or Edge, look for the install icon (a small screen with a down arrow) at the right end of the address bar.</p>` + STORAGE_NOTE;
+  }
+
   function exportBackup() {
     const json = S.exportJson();
     const name = 'lab-notes-backup-' + S.dayKey() + '.json';
-    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     // On iPhone, the share sheet is the reliable way to save a file ("Save to Files").
     if (isIOS && navigator.canShare && typeof File === 'function') {
       const file = new File([json], name, { type: 'application/json' });
@@ -808,6 +847,29 @@
     }
     if (e.target.closest('[data-ranks]')) showRanks();
   });
+
+  // ---------- installable app + offline mode
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault(); // we show our own Install button on the Settings page instead
+    installPrompt = e;
+    const btn = $('[data-install]');
+    const hint = $('[data-install-hint]');
+    if (btn) btn.hidden = false;
+    if (hint) hint.hidden = true;
+  });
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null;
+    toast('🎉 Lab Notes is installed!');
+    SFX.play('levelUp');
+  });
+  window.addEventListener('offline', () => toast('📴 You’re offline. The lab still works!'));
+  window.addEventListener('online', () => toast('📶 Back online.'));
+
+  if ('serviceWorker' in navigator && window.isSecureContext) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('sw.js').catch((err) => console.warn('Offline mode is unavailable:', err));
+    });
+  }
 
   route();
 })();

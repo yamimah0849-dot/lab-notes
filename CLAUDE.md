@@ -96,7 +96,14 @@ local save, and Export/Import backup.
   overlays (MISSION COMPLETE, rank up, goal; each can have a `sound`), Ask Claude, top-bar mute button, soundboard.
 - `data/course.js`: the course map (all modules + lesson titles, which phase builds them) and the kit list.
 - `data/module-N.js`: lesson content. A lesson is playable once its id has content here.
-- `start-lab.bat`: double-click to run the app on the laptop (starts Python's web server, opens the browser).
+- `start-lab.bat`: double-click to run the app on the laptop (starts Python's web server on 127.0.0.1:8000, opens the browser).
+- `manifest.webmanifest` + `icons/` (icon.svg source, icon-192/512.png, apple-touch-icon.png 180): makes the app installable.
+  The PNGs were rendered from icon.svg with headless Edge at 512 and shrunk with System.Drawing
+  (Edge refuses windows narrower than ~500px, so don't render small sizes directly).
+- `sw.js`: service worker for offline use. App files are network-first (4 s timeout, then the saved copy);
+  Google Fonts are cache-first. **When adding a file (e.g. `data/module-1.js`), add it to `PRECACHE` and bump `VERSION`.**
+- `.nojekyll`: tells GitHub Pages to serve files as-is.
+- Testing note: the app's built-in browser pane can't register service workers. Test offline mode in real Chrome.
 
 ## Lesson format (example: `data/module-0.js`)
 `{ minutes, intro, summary, sections, search, videos, quiz, challenges }`
@@ -140,4 +147,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   sparks, Ohmi boing) and Dr. Ohmi's babble voice. Top-bar 🔊/🔇 button; Backup page became Settings
   (`#/settings`) with sound switches and a soundboard. Verified in the built-in browser that every sound starts
   and mute works (can't hear audio there). The learner listened and loved them; merged to `main` and pushed.
-  Next: Phase 2 (GitHub Pages, PWA install on iPhone, offline).
+- 2026-11-11: Phase 2 built on branch `phase-2-pwa`: Dr. Ohmi app icon, manifest, iOS home-screen meta tags,
+  service worker (offline incl. fonts), Settings "Install" section (iPhone Safari steps; Install button on
+  Chrome/Edge), offline/online toasts. Verified in real Chrome: 15 app files + 9 font files cached, and a full
+  reload with the server switched off still shows the lesson with the comic fonts.

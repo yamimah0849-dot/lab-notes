@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="iGlow" cx="50%" cy="45%" r="60%">
+      <stop offset="0" stop-color="#9b5cff" stop-opacity=".55"/>
+      <stop offset=".55" stop-color="#ff3ea5" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#0b0820" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="iIris" cx="50%" cy="30%" r="75%">
+      <stop offset="0" stop-color="#ffa6dc"/><stop offset=".5" stop-color="#e0399f"/><stop offset="1" stop-color="#5a1677"/>
+    </radialGradient>
+    <linearGradient id="iHair" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#6ff7e0"/><stop offset="1" stop-color="#18a38c"/>
+    </linearGradient>
+    <linearGradient id="iCoat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#d9dcf5"/>
+    </linearGradient>
+    <radialGradient id="iLens" cx="35%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#e9fdff"/><stop offset=".45" stop-color="#7ff0ff"/><stop offset="1" stop-color="#1aa7c4"/>
+    </radialGradient>
+  </defs>
+
+  <!-- background: dark lab with a neon glow and blueprint grid -->
+  <rect width="512" height="512" fill="#0b0820"/>
+  <path d="M0 64H512M0 128H512M0 192H512M0 256H512M0 320H512M0 384H512M0 448H512M64 0V512M128 0V512M192 0V512M256 0V512M320 0V512M384 0V512M448 0V512" stroke="#22e6ff" stroke-opacity=".08" stroke-width="2"/>
+  <rect width="512" height="512" fill="url(#iGlow)"/>
+  <g fill="#ffd23f">
+    <path transform="translate(118 150) scale(1.6)" d="M0 -9 L2.5 -2.5 L9 0 L2.5 2.5 L0 9 L-2.5 2.5 L-9 0 L-2.5 -2.5 Z"/>
+    <path transform="translate(400 128) scale(1.1)" d="M0 -9 L2.5 -2.5 L9 0 L2.5 2.5 L0 9 L-2.5 2.5 L-9 0 L-2.5 -2.5 Z"/>
+    <path transform="translate(412 300) scale(.9)" d="M0 -9 L2.5 -2.5 L9 0 L2.5 2.5 L0 9 L-2.5 2.5 L-9 0 L-2.5 -2.5 Z"/>
+  </g>
+
+  <!-- Dr. Ohmi, head and shoulders -->
+  <g transform="translate(36 54) scale(2)">
+    <path d="M46 108 Q40 38 110 32 Q180 38 174 108 Q176 150 160 172 L148 128 L72 128 L60 172 Q44 150 46 108 Z" fill="url(#iHair)" stroke="#0f5e52" stroke-width="3" stroke-linejoin="round"/>
+    <rect x="100" y="146" width="20" height="20" fill="#f3c6ad"/>
+    <path d="M58 168 Q110 150 162 168 Q176 186 180 214 L40 214 Q44 186 58 168 Z" fill="url(#iCoat)" stroke="#2a2140" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M96 158 L110 194 L124 158 Z" fill="#2a2140"/>
+    <path d="M112 166 L104 180 L110 180 L106 192 L117 176 L111 176 L115 166 Z" fill="#ffd23f" stroke="#2a2140" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M94 160 L104 200 M126 160 L116 200" stroke="#a9a6d6" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M58 104 Q58 162 110 164 Q162 162 162 104 Q162 64 110 62 Q58 64 58 104 Z" fill="#ffe6d5" stroke="#2a2140" stroke-width="3"/>
+    <path d="M58 84 Q44 128 60 160 Q64 132 72 104 Z M162 84 Q176 128 160 160 Q156 132 148 104 Z" fill="url(#iHair)" stroke="#0f5e52" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M52 104 Q52 50 110 44 Q168 50 168 104 L156 84 L150 102 L138 80 L128 98 L116 76 L106 96 L94 78 L86 100 L74 82 L64 104 Z" fill="url(#iHair)" stroke="#0f5e52" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M78 58 Q94 50 110 52" stroke="rgba(255,255,255,.65)" stroke-width="4" stroke-linecap="round" fill="none"/>
+    <path d="M106 50 L119 24 L111 25 L124 2 L101 31 L110 30 Z" fill="#ffd23f" stroke="#2a2140" stroke-width="2.5" stroke-linejoin="round"/>
+    <path d="M48 74 Q110 50 172 74" stroke="#2a2140" stroke-width="10" fill="none" stroke-linecap="round"/>
+    <rect x="100" y="60" width="20" height="8" rx="3" fill="#2a2140"/>
+    <circle cx="86" cy="64" r="19" fill="#2a2140"/><circle cx="86" cy="64" r="15" fill="#d99a48"/><circle cx="86" cy="64" r="11.5" fill="url(#iLens)"/>
+    <circle cx="134" cy="64" r="19" fill="#2a2140"/><circle cx="134" cy="64" r="15" fill="#d99a48"/><circle cx="134" cy="64" r="11.5" fill="url(#iLens)"/>
+    <path d="M79 60 Q83 55 89 56 M127 60 Q131 55 137 56" stroke="#fff" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+    <path d="M138 56 L134 63 L139 66 L135 73" stroke="#fff" stroke-width="1.6" fill="none"/>
+    <ellipse cx="88" cy="120" rx="11" ry="14" fill="url(#iIris)" stroke="#2a2140" stroke-width="2.5"/>
+    <ellipse cx="88" cy="123" rx="4.5" ry="6" fill="#2a0f3a"/>
+    <ellipse cx="132" cy="120" rx="11" ry="14" fill="url(#iIris)" stroke="#2a2140" stroke-width="2.5"/>
+    <ellipse cx="132" cy="123" rx="4.5" ry="6" fill="#2a0f3a"/>
+    <path d="M74 112 Q88 98 102 110 M118 110 Q132 98 146 112" stroke="#2a2140" stroke-width="4.5" fill="none" stroke-linecap="round"/>
+    <g fill="#fff">
+      <path transform="translate(88 119) scale(.75)" d="M0 -9 L2.5 -2.5 L9 0 L2.5 2.5 L0 9 L-2.5 2.5 L-9 0 L-2.5 -2.5 Z"/>
+      <path transform="translate(132 119) scale(.75)" d="M0 -9 L2.5 -2.5 L9 0 L2.5 2.5 L0 9 L-2.5 2.5 L-9 0 L-2.5 -2.5 Z"/>
+    </g>
+    <ellipse cx="72" cy="136" rx="9" ry="5" fill="#ff86b6" opacity=".6"/>
+    <ellipse cx="148" cy="136" rx="9" ry="5" fill="#ff86b6" opacity=".6"/>
+    <path d="M97 142 Q112 156 125 140" stroke="#2a2140" stroke-width="3" fill="none" stroke-linecap="round"/>
+    <path d="M105 146 L108 152 L111 147" fill="#fff" stroke="#2a2140" stroke-width="1.5" stroke-linejoin="round"/>
+  </g>
+</svg>
