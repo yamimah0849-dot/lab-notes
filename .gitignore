@@ -1,0 +1,10 @@
+# Windows / Mac junk files
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# Editor settings
+.vscode/
+
+# Your exported progress backups: keep them on your laptop, not in the public repo
+lab-notes-backup*.json
