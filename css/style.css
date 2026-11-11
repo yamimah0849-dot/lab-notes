@@ -137,8 +137,10 @@ b, strong { font-weight: 800; }
 
 @media (max-width: 560px) {
   .brand-text, .chip-goal { display: none; }
-  .topbar { gap: 8px; }
-  .nav a { padding: 6px 8px; }
+  .topbar { gap: 6px; padding-left: 12px; padding-right: 12px; }
+  .nav a { padding: 6px 7px; }
+  .chips { gap: 4px; }
+  .chip { padding: 4px 8px; }
 }
 
 /* ---------- layout */
@@ -634,7 +636,40 @@ details[open] summary { margin-bottom: 8px; }
 .summary-grid .display { color: var(--yellow); font-size: 2rem; line-height: 1.1; }
 .summary-grid span:last-child { color: var(--muted); font-size: .85rem; font-weight: 700; }
 label.btn { position: relative; }
-.import-msg { margin: 10px 0 0; color: #ff8da0; font-weight: 800; }
+.import-msg, .warn-msg { margin: 10px 0 0; color: #ff8da0; font-weight: 800; }
+
+/* settings: sound switches + soundboard */
+.sound-toggle { cursor: pointer; color: var(--text); font: inherit; font-size: .95rem; padding: 4px 9px; }
+.sound-toggle:hover { border-color: var(--cyan); }
+.switch { display: flex; align-items: flex-start; gap: 14px; margin: 0 0 14px; cursor: pointer; line-height: 1.4; }
+.switch input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.switch-ui {
+  position: relative;
+  flex: none;
+  width: 52px;
+  height: 30px;
+  margin-top: 2px;
+  border: 2px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  transition: background .2s, border-color .2s;
+}
+.switch-ui::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform .2s, background .2s;
+}
+.switch input:checked + .switch-ui { background: rgba(182, 255, 59, .2); border-color: var(--lime); }
+.switch input:checked + .switch-ui::after { transform: translateX(22px); background: var(--lime); box-shadow: 0 0 10px var(--lime); }
+.switch input:focus-visible + .switch-ui { outline: 3px solid var(--yellow); outline-offset: 2px; }
+.soundboard { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); margin-bottom: 12px; }
+.soundboard .btn { font-size: 1rem; min-height: 44px; }
 
 /* ---------- celebration overlays */
 .overlay {

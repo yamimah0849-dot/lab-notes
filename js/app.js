@@ -5,6 +5,7 @@
   'use strict';
 
   const S = window.LabStore;
+  const SFX = window.SFX;
   const Mascot = window.Mascot;
   const BB = window.Breadboard;
   const COURSE = window.LabNotesCourse;
@@ -85,6 +86,7 @@
       '<div class="overlay-inner">' + (spec.plain ? '' : '<div class="overlay-ohmi"></div>') + spec.html + '</div>';
     overlayRoot.appendChild(el);
     if (!spec.plain) Mascot.mount($('.overlay-ohmi', el), { variant: 'big' }).setMood(spec.mood || 'proud');
+    if (spec.sound) SFX.play(spec.sound);
 
     let closed = false;
     function close(action) {
@@ -155,13 +157,14 @@
   // ---------- reacting to progress events
   S.on('xp', (e) => {
     toast('<b>+' + e.gained + ' XP</b> · ' + esc(e.reason), 'xp');
+    if (e.reason === 'challenge done') SFX.play('coin');
     updateTopbar(true);
     refreshStats();
     if (e.rankUp) {
       const r = e.rankUp;
       // wait a moment so a "Mission complete" screen can go first
       setTimeout(() => queueOverlay(() => ({
-        className: 'rankup', confetti: true, mood: 'proud',
+        className: 'rankup', confetti: true, mood: 'proud', sound: 'levelUp',
         html: `<p class="eyebrow">Promotion!</p>
           <h2 class="mission-title">RANK UP!</h2>
           <p class="rank-new">${r.emoji} ${esc(r.title)}</p>
@@ -173,7 +176,7 @@
 
   S.on('goal', () => {
     setTimeout(() => queueOverlay(() => ({
-      className: 'goal', confetti: true, mood: 'happy',
+      className: 'goal', confetti: true, mood: 'happy', sound: 'goal',
       html: `<h2 class="mission-title">20 MINUTES!</h2>
         <p class="mission-sub">Daily goal smashed · <span class="xp-pill">+${S.XP.dailyGoal} XP</span></p>
         <p class="mission-quote">“${pick(LINES.goal)}”</p>
@@ -192,10 +195,11 @@
     const view = parts[0];
     const arg = decodeURIComponent(parts[1] || '');
     current = null;
-    $$('.nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('data-nav') === (view === 'backup' ? 'backup' : 'home')));
+    const isSettings = view === 'settings' || view === 'backup';
+    $$('.nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('data-nav') === (isSettings ? 'settings' : 'home')));
     if (view === 'lesson') viewLesson(arg);
     else if (view === 'module') viewModule(arg);
-    else if (view === 'backup') viewBackup();
+    else if (isSettings) viewSettings();
     else viewDashboard();
     updateTopbar();
   }
@@ -307,7 +311,7 @@
 
       <section class="card backup-strip">
         <p>💾 Your progress is saved in <b>this browser on this device</b> only. Back it up now and then!</p>
-        <a class="btn btn-ghost" href="#/backup">Backup &amp; restore</a>
+        <a class="btn btn-ghost" href="#/settings">Backup &amp; restore</a>
       </section>`;
     Mascot.mount($('#heroOhmi'), { variant: 'hero' }).say(greeting());
   }
@@ -457,7 +461,7 @@
         ${next ? `<a class="btn btn-ghost" href="#/lesson/${next.id}">${esc(next.title)} →</a>` : ''}
       </nav>`;
 
-    $$('[data-bb]', app).forEach((el) => BB.render(el, bbConfigs[+el.getAttribute('data-bb')]));
+    $$('[data-bb]', app).forEach((el) => BB.render(el, Object.assign({ onSelect: () => SFX.play('spark') }, bbConfigs[+el.getAttribute('data-bb')])));
     Mascot.mount($('#headOhmi'), { variant: 'mini' }).say(L.intro);
     current = { id: id, meta: meta, L: L };
     renderQuiz();
@@ -515,10 +519,13 @@
       if (right) {
         run.score++;
         run.xp += S.recordAnswer(id, qi, true);
-        ohmi.say(pick(LINES.correct), 'happy');
+        SFX.play('correct');
+        ohmi.say(pick(LINES.correct), 'happy', { voiceDelay: 0.6 });
       } else {
         S.recordAnswer(id, qi, false);
-        ohmi.say(pick(LINES.wrong), 'shock');
+        const sound = pick(['wrong', 'wrong', 'sting']); // buzzer most of the time, sometimes full drama
+        SFX.play(sound);
+        ohmi.say(pick(LINES.wrong), 'shock', { voiceDelay: sound === 'sting' ? 1.2 : 0.75 });
         shockFx(qEl);
       }
       if (run.answered === total) setTimeout(finish, 900);
@@ -537,10 +544,10 @@
       if (res.passed) {
         const badge = $('#doneBadge');
         if (badge) badge.hidden = false;
-        ohmi.say(pick(LINES.pass), 'proud');
+        ohmi.say(pick(LINES.pass), 'proud', { silent: true });
         const xp = run.xp + res.gained;
         queueOverlay(() => ({
-          className: 'win', confetti: true, mood: 'proud',
+          className: 'win', confetti: true, mood: 'proud', sound: 'fanfare',
           html: `<h2 class="mission-title">MISSION<br>COMPLETE!</h2>
             <p class="mission-sub">Score ${run.score}/${total}${xp ? ` · <span class="xp-pill">+${xp} XP</span>` : ''}</p>
             <p class="mission-quote">“${pick(LINES.pass)}”</p>
@@ -550,9 +557,9 @@
             </div>`,
         }));
       } else {
-        ohmi.say(pick(LINES.fail), 'shock');
+        ohmi.say(pick(LINES.fail), 'shock', { silent: true });
         queueOverlay(() => ({
-          className: 'fail', mood: 'shock',
+          className: 'fail', mood: 'shock', sound: 'sadTrombone',
           html: `<h2 class="mission-title">MISSION…<br>FAILED?!</h2>
             <p class="mission-sub">Score ${run.score}/${total} · you need ${need}</p>
             <p class="mission-quote">“${pick(LINES.failQuote)}”</p>
@@ -590,10 +597,37 @@
     Mascot.mount($('#nfOhmi'), { variant: 'mini' }).say('I… may have zapped this page. Let’s pretend that didn’t happen.', 'shock');
   }
 
-  // ---------- backup page
-  function viewBackup() {
+  // ---------- settings page (sound + backup)
+  const SOUNDBOARD = [
+    ['correct', '✅ Right answer'],
+    ['wrong', '❌ Wrong answer'],
+    ['sting', '😱 Dramatic'],
+    ['fanfare', '🏆 Mission complete'],
+    ['sadTrombone', '🎺 Mission failed'],
+    ['levelUp', '⬆️ Rank up'],
+    ['goal', '⏱ Daily goal'],
+    ['boing', '🤪 Poke Ohmi'],
+  ];
+
+  function viewSettings() {
     const st = S.get();
     app.innerHTML = `
+      <section class="card">
+        <p class="eyebrow">Settings</p>
+        <h1>🔊 Sound</h1>
+        ${SFX.supported ? '' : '<p class="warn-msg">This browser can’t play the app’s sounds.</p>'}
+        <label class="switch"><input type="checkbox" data-pref="sfx" ${SFX.get('sfx') ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span>
+          <span><b>Sound effects</b><br><span class="small muted">Quiz-show chimes, buzzers, dramatic stings and fanfares.</span></span></label>
+        <label class="switch"><input type="checkbox" data-pref="voice" ${SFX.get('voice') ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span>
+          <span><b>Dr. Ohmi’s voice</b><br><span class="small muted">Cute gibberish babble whenever Ohmi talks.</span></span></label>
+        <h3>🎛️ Soundboard</h3>
+        <div class="soundboard">
+          ${SOUNDBOARD.map((s) => `<button class="btn btn-ghost" type="button" data-sound="${s[0]}">${s[1]}</button>`).join('')}
+          <button class="btn btn-ghost" type="button" data-voice>🗣️ Ohmi talks</button>
+        </div>
+        <p class="small muted">All sounds are made live by your browser (no audio files). On iPhone they follow your ring/silent switch.</p>
+      </section>
+
       <section class="card prose">
         <p class="eyebrow">Keep your progress safe</p>
         <h1>💾 Backup &amp; restore</h1>
@@ -619,6 +653,19 @@
         <p>Wipe all progress on this device and start over as a brand-new Lab Intern. Export a backup first!</p>
         <button class="btn btn-danger" type="button" data-reset>Reset all progress</button>
       </section>`;
+
+    $$('[data-pref]').forEach((box) => {
+      box.onchange = () => {
+        SFX.set(box.getAttribute('data-pref'), box.checked);
+        updateSoundToggle();
+        if (box.checked) {
+          if (box.getAttribute('data-pref') === 'sfx') SFX.play('coin');
+          else SFX.babble('happy', 0, 'Yay I can talk again!');
+        }
+      };
+    });
+    $$('[data-sound]').forEach((b) => { b.onclick = () => SFX.play(b.getAttribute('data-sound')); });
+    $('[data-voice]').onclick = () => SFX.babble(pick(['idle', 'happy', 'shock', 'think', 'proud']), 0, 'Hello intern, welcome to my secret lab!');
 
     $('[data-export]').onclick = exportBackup;
     $('[data-import]').onchange = (e) => {
@@ -715,6 +762,29 @@
         <button class="btn btn-primary" data-action="close">Got it</button>`,
     }));
   }
+
+  // ---------- sound on/off button in the top bar
+  const soundBtn = $('#soundToggle');
+  function updateSoundToggle() {
+    const on = SFX.anyOn();
+    soundBtn.textContent = on ? '🔊' : '🔇';
+    soundBtn.setAttribute('aria-pressed', String(on));
+    soundBtn.setAttribute('aria-label', on ? 'Sound is on. Tap to mute.' : 'Sound is off. Tap to turn it on.');
+    $$('[data-pref]').forEach((box) => { box.checked = SFX.get(box.getAttribute('data-pref')); });
+  }
+  soundBtn.addEventListener('click', () => {
+    const on = SFX.toggleAll();
+    updateSoundToggle();
+    toast(on ? '🔊 Sound on!' : '🔇 Sound off. Ohmi is sulking quietly.');
+    if (on) SFX.play('coin');
+  });
+  updateSoundToggle();
+
+  // a soft click for buttons and links (quiz answers and Ohmi have their own sounds)
+  document.addEventListener('click', (e) => {
+    if (e.target.closest('.btn, .nav a, .brand, .module-card, .lesson-row, .linklike, .video, summary') &&
+        !e.target.closest('[data-sound], [data-voice]')) SFX.play('tap');
+  });
 
   // ---------- clicks shared by several pages
   app.addEventListener('click', (e) => {

@@ -16,9 +16,10 @@
     <a class="brand" href="#/" aria-label="Lab Notes home"><span class="brand-bolt" aria-hidden="true">⚡</span><span class="brand-text">LAB NOTES</span></a>
     <nav class="nav" aria-label="Main">
       <a href="#/" data-nav="home">Lab</a>
-      <a href="#/backup" data-nav="backup">Backup</a>
+      <a href="#/settings" data-nav="settings">Settings</a>
     </nav>
     <div class="chips">
+      <button class="chip sound-toggle" id="soundToggle" type="button" title="Sound on/off">🔊</button>
       <span class="chip chip-streak" title="Daily streak (days in a row)">🔥 <b id="chipStreak">0</b></span>
       <span class="chip chip-goal" title="Minutes studied today (goal: 20)">⏱ <b id="chipGoal">0</b>/20</span>
       <span class="chip chip-xp" title="Total XP"><b id="chipXp">0</b>&nbsp;XP</span>
@@ -27,7 +28,7 @@
 
   <main id="app" tabindex="-1"></main>
 
-  <footer class="footer">Made with ⚡ for learning · progress is saved on this device · <a href="#/backup">backup</a></footer>
+  <footer class="footer">Made with ⚡ for learning · progress is saved on this device · <a href="#/settings">settings &amp; backup</a></footer>
 
   <div id="overlay-root"></div>
   <div id="toast-root" aria-live="polite"></div>
@@ -35,6 +36,7 @@
   <noscript><p class="card">Lab Notes needs JavaScript turned on.</p></noscript>
 
   <script src="js/store.js"></script>
+  <script src="js/sfx.js"></script>
   <script src="js/mascot.js"></script>
   <script src="js/breadboard.js"></script>
   <script src="data/course.js"></script>

@@ -84,10 +84,16 @@ local save, and Export/Import backup.
 - `index.html`: page shell (top bar, footer, script tags). New `data/module-N.js` files need a script tag here.
 - `css/style.css`: all styling. Colors are variables in `:root`.
 - `js/store.js`: progress in localStorage (key `labnotes.progress.v1`), XP, ranks, streak, study timer, export/import.
+- `js/sfx.js`: all sounds, synthesized live with the Web Audio API (no audio files, nothing copyrighted).
+  `SFX.play(name)`: tap, spark, boing, correct ("pin-pon" chime), wrong (buzzer + zap), sting (dun-dun-DUNN),
+  sadTrombone, whoosh, fanfare, levelUp, goal, coin. `SFX.babble(mood, delay, text)` = Dr. Ohmi's gibberish voice.
+  Settings (sfx/voice on/off) saved in localStorage key `labnotes.sound.v1`. Sound only starts after the first tap (browser rule).
 - `js/mascot.js`: Dr. Ohmi as inline SVG (moods: idle, happy, shock, think, proud) and all of Ohmi's lines.
+  `say(html, mood, {silent, voiceDelay})` shows a bubble and makes Ohmi "talk".
 - `js/breadboard.js`: interactive breadboard diagrams. Holes `a1`..`j20`, rails `tn`/`tp` (top -/+), `bp`/`bn` (bottom +/-).
   Parts: `wire {from,to,color,arc}`, `lead {hole,color,label}` (wire coming from off the board), `resistor {from,to,bands}`, `led {anode,cathode,color,lit}`.
-- `js/app.js`: hash router (`#/`, `#/module/N`, `#/lesson/ID`, `#/backup`), pages, quiz, overlays (MISSION COMPLETE, rank up, goal), Ask Claude.
+- `js/app.js`: hash router (`#/`, `#/module/N`, `#/lesson/ID`, `#/settings` (old `#/backup` still works)), pages, quiz,
+  overlays (MISSION COMPLETE, rank up, goal; each can have a `sound`), Ask Claude, top-bar mute button, soundboard.
 - `data/course.js`: the course map (all modules + lesson titles, which phase builds them) and the kit list.
 - `data/module-N.js`: lesson content. A lesson is playable once its id has content here.
 - `start-lab.bat`: double-click to run the app on the laptop (starts Python's web server, opens the browser).
@@ -109,7 +115,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 ## Phases
 - [x] Setup: folder, Git, CLAUDE.md, GitHub repo, first push
 - [x] 1. App shell: theme, mascot, dashboard, XP/ranks/streak/goal, export/import, 1 sample lesson
-- [ ] Extra (learner's request): anime-style sound effects + Dr. Ohmi babble voice
+- [x] Extra (learner's request): anime-style sound effects + Dr. Ohmi babble voice
 - [ ] 2. Go live: GitHub Pages, iPhone home-screen install, offline
 - [ ] 3. Modules 0-1
 - [ ] 4. Modules 2-3
@@ -129,3 +135,9 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   and the first real lesson `m0-2` "Meet the Breadboard" (interactive breadboard, 3 verified videos, 5 questions,
   build + Tinkercad challenges). Tested in the built-in browser at desktop and phone width.
   The learner tested it with `start-lab.bat` and confirmed it works; merged to `main` and pushed.
+- 2026-11-11: Learner asked for fun anime-style sounds. Built on branch `sound-effects`: `js/sfx.js` (synthesized
+  quiz-show chime, buzzer, dramatic sting, sad trombone, fanfare, level-up, goal chimes, coin, taps, breadboard
+  sparks, Ohmi boing) and Dr. Ohmi's babble voice. Top-bar 🔊/🔇 button; Backup page became Settings
+  (`#/settings`) with sound switches and a soundboard. Verified in the built-in browser that every sound starts
+  and mute works (can't hear audio there). The learner listened and loved them; merged to `main` and pushed.
+  Next: Phase 2 (GitHub Pages, PWA install on iPhone, offline).

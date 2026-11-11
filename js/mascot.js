@@ -198,16 +198,19 @@
       clearTimeout(moodTimer);
       if (ms) moodTimer = setTimeout(function () { setMood('idle'); }, ms);
     }
-    function say(html, mood) {
+    // opts.silent = no voice, opts.voiceDelay = seconds to wait before Ohmi "talks" (to let a sound effect finish)
+    function say(html, mood, opts) {
       bubble.innerHTML = html;
       bubble.hidden = false;
       bubble.classList.remove('pop');
       void bubble.offsetWidth; // restart the pop animation
       bubble.classList.add('pop');
       if (mood) setMood(mood, 4500);
+      if (window.SFX && !(opts && opts.silent)) window.SFX.babble(mood || 'idle', (opts && opts.voiceDelay) || 0, html);
     }
     fig.addEventListener('click', function () {
-      say(pick(LINES.joke), pick(['happy', 'think', 'proud']));
+      if (window.SFX) window.SFX.play('boing');
+      say(pick(LINES.joke), pick(['happy', 'think', 'proud']), { voiceDelay: 0.3 });
     });
     return { setMood: setMood, say: say, el: el };
   }
