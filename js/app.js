@@ -683,12 +683,17 @@
           <span><b>Sound effects</b><br><span class="small muted">Quiz-show chimes, buzzers, dramatic stings and fanfares.</span></span></label>
         <label class="switch"><input type="checkbox" data-pref="voice" ${SFX.get('voice') ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span>
           <span><b>Dr. Ohmi’s voice</b><br><span class="small muted">Cute gibberish babble whenever Ohmi talks.</span></span></label>
+        ${isIOS ? (SFX.hasAudioSession
+          ? `<label class="switch"><input type="checkbox" data-pref="silentOk" ${SFX.get('silentOk') ? 'checked' : ''}><span class="switch-ui" aria-hidden="true"></span>
+              <span><b>📱 Play even when my iPhone is on silent</b><br><span class="small muted">Like a video does. Heads-up: while Lab Notes makes sounds, music from other apps may pause. Turn this off to follow the silent switch instead.</span></span></label>`
+          : '<p class="small warn-msg">📱 Your iPhone mutes these sounds while it’s on silent. Turn silent mode off (and the volume up) to hear them. (Updating iOS lets Lab Notes play even on silent.)</p>')
+          : ''}
         <h3>🎛️ Soundboard</h3>
         <div class="soundboard">
           ${SOUNDBOARD.map((s) => `<button class="btn btn-ghost" type="button" data-sound="${s[0]}">${s[1]}</button>`).join('')}
           <button class="btn btn-ghost" type="button" data-voice>🗣️ Ohmi talks</button>
         </div>
-        <p class="small muted">All sounds are made live by your browser (no audio files). On iPhone they follow your ring/silent switch.</p>
+        <p class="small muted">All sounds are made live by your browser (no audio files). No sound? Check the volume, tap anywhere in the app once (phones only allow sound after a tap), and make sure the 🔊 button at the top isn’t muted.</p>
       </section>
 
       <section class="card prose">
@@ -731,7 +736,8 @@
         updateSoundToggle();
         if (box.checked) {
           if (box.getAttribute('data-pref') === 'sfx') SFX.play('coin');
-          else SFX.babble('happy', 0, 'Yay I can talk again!');
+          else if (box.getAttribute('data-pref') === 'voice') SFX.babble('happy', 0, 'Yay I can talk again!');
+          else SFX.play('correct');
         }
       };
     });

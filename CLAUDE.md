@@ -101,6 +101,10 @@ local save, and Export/Import backup.
   `SFX.play(name)`: tap, spark, boing, correct ("pin-pon" chime), wrong (buzzer + zap), sting (dun-dun-DUNN),
   sadTrombone, whoosh, fanfare, levelUp, goal, coin. `SFX.babble(mood, delay, text)` = Dr. Ohmi's gibberish voice.
   Settings (sfx/voice on/off) saved in localStorage key `labnotes.sound.v1`. Sound only starts after the first tap (browser rule).
+  iPhone notes: iOS mutes Web Audio on silent unless `navigator.audioSession.type = 'playback'` (pref `silentOk`,
+  default on, switch shown in Settings on iOS only; may pause other apps' music). iOS also has an extra
+  AudioContext state "interrupted" (after leaving the app): `wake()` resumes from ANY non-running state on every
+  tap, and `withAudio()` plays a sound as soon as the context finishes waking (max 400 ms later).
 - `js/mascot.js`: Dr. Ohmi as inline SVG (moods: idle, happy, shock, think, proud) and all of Ohmi's lines.
   `say(html, mood, {silent, voiceDelay})` shows a bubble and makes Ohmi "talk".
 - `js/breadboard.js`: interactive breadboard diagrams. Holes `a1`..`j20`, rails `tn`/`tp` (top -/+), `bp`/`bn` (bottom +/-).
@@ -222,6 +226,9 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   Tested in the built-in browser with a fake GitHub (mocked fetch): bad/wrong token messages, gist creation,
   pulling another device's lessons and minutes, auto-upload after a challenge, combined daily goal. Not tested
   with the learner's real GitHub token (they create and paste it themselves). sw.js VERSION v7.
+- 2026-11-12: Learner reported no sound on the iPhone. Fixed: resume audio from iOS's "interrupted" state,
+  play on the first tap, and an iPhone-only "Play even when my iPhone is on silent" switch (Audio Session
+  API, default on). Verified sounds still work in Chrome; not verifiable on a real iPhone from here. sw.js v8.
 
 ## Ideas for later (not built)
 - More Muscle Meter games (flex-to-jump runner, reaction tester), CSV export of a recording.

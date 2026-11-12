@@ -5,21 +5,30 @@
   'use strict';
 
   const KEY = 'labnotes.sound.v1';
-  const prefs = { sfx: true, voice: true };
+  // silentOk: on iPhone, play even when the phone is on silent (otherwise iOS mutes web sound effects)
+  const prefs = { sfx: true, voice: true, silentOk: true };
   try { Object.assign(prefs, JSON.parse(localStorage.getItem(KEY)) || {}); } catch (e) { /* use defaults */ }
   function savePrefs() {
     try { localStorage.setItem(KEY, JSON.stringify(prefs)); } catch (e) { /* private mode etc. */ }
   }
 
   const AC = window.AudioContext || window.webkitAudioContext;
+  const HAS_SESSION = 'audioSession' in navigator; // Safari's Audio Session API (iPhone, iOS 17+)
   let ctx = null;
   let out = null;
   let noiseBuf = null;
-  let unlocked = false;
+
+  // "playback" = sound like a video does (ignores the silent switch); "auto" = normal web behaviour.
+  function applySession() {
+    if (!HAS_SESSION) return;
+    try { navigator.audioSession.type = prefs.silentOk ? 'playback' : 'auto'; } catch (e) { /* not allowed here */ }
+  }
+  applySession();
 
   // Create (or wake up) the audio engine. Browsers only allow this right after a tap or key press.
   function wake() {
     if (!AC) return null;
+    applySession();
     if (!ctx) {
       ctx = new AC();
       out = ctx.createGain();
@@ -30,9 +39,10 @@
       out.connect(comp);
       comp.connect(ctx.destination);
     }
-    if (ctx.state === 'suspended') ctx.resume();
-    if (!unlocked) { // iPhone needs one (silent) sound played inside a tap to unlock audio
-      unlocked = true;
+    // iPhone uses an extra state, "interrupted" (after leaving the app, a call, Siri…). Wake up from any non-running state.
+    if (ctx.state !== 'running') {
+      try { ctx.resume(); } catch (e) { /* will retry on the next tap */ }
+      // iPhone needs a (silent) sound started inside a tap to really unlock audio
       const s = ctx.createBufferSource();
       s.buffer = ctx.createBuffer(1, 1, 22050);
       s.connect(ctx.destination);
@@ -40,12 +50,23 @@
     }
     return ctx;
   }
-  ['pointerdown', 'touchend', 'keydown'].forEach(function (ev) {
+  ['pointerdown', 'touchstart', 'touchend', 'click', 'keydown'].forEach(function (ev) {
     window.addEventListener(ev, function () { if (prefs.sfx || prefs.voice) wake(); }, { capture: true, passive: true });
   });
 
-  // Only play if audio is already running (so nothing gets queued up and blasts out later).
+  // Only play if audio is running (so nothing gets queued up and blasts out much later).
   function live() { return ctx && ctx.state === 'running' ? ctx : null; }
+
+  // Run fn now if audio is running; if it's still waking up from this very tap, run it the moment it's ready
+  // (but give up after 400 ms so old sounds never pile up).
+  function withAudio(fn) {
+    if (live()) { fn(); return; }
+    if (!ctx) return;
+    const t = Date.now();
+    try {
+      ctx.resume().then(() => { if (ctx.state === 'running' && Date.now() - t < 400) fn(); }).catch(() => {});
+    } catch (e) { /* ignore */ }
+  }
 
   // ---- building blocks
   function envelope(g, t0, attack, peak, end) {
@@ -219,18 +240,21 @@
   };
 
   function play(name) {
-    if (!prefs.sfx || !SOUNDS[name] || !live()) return;
-    try { SOUNDS[name](); } catch (e) { console.warn('sound failed', name, e); }
+    if (!prefs.sfx || !SOUNDS[name]) return;
+    withAudio(() => { try { SOUNDS[name](); } catch (e) { console.warn('sound failed', name, e); } });
   }
 
   // Dr. Ohmi's "voice": cute gibberish blips, higher when happy, frantic when shocked.
   const VOICE = { idle: 560, happy: 720, shock: 900, think: 430, proud: 640 };
   let lastBabble = 0;
   function babble(mood, delay, text) {
-    if (!prefs.voice || !live()) return;
+    if (!prefs.voice || !ctx) return;
     const now = Date.now();
     if (now - lastBabble < 700) return; // don't let two Ohmis talk over each other
     lastBabble = now;
+    withAudio(() => speak(mood, delay, text));
+  }
+  function speak(mood, delay, text) {
     const base = VOICE[mood] || VOICE.idle;
     const words = text ? String(text).replace(/<[^>]*>/g, ' ').split(/\s+/).filter(Boolean).length : 6;
     const count = Math.max(3, Math.min(12, Math.round(words * 0.8)));
@@ -253,23 +277,33 @@
   function playNotes(notes, gapFactor) {
     const c = wake();
     if (!c || !prefs.sfx) return 0;
-    let at = 0.02;
-    notes.forEach(function (n) {
-      const dur = n[1] / 1000;
-      if (n[0] > 0) tone({ type: 'square', f: n[0], at: at, dur: dur, vol: 0.09, lp: 4000, attack: 0.005 });
-      at += dur * (gapFactor || 1.3);
+    let total = 0.02;
+    notes.forEach(function (n) { total += (n[1] / 1000) * (gapFactor || 1.3); });
+    withAudio(() => {
+      let at = 0.02;
+      notes.forEach(function (n) {
+        const dur = n[1] / 1000;
+        if (n[0] > 0) tone({ type: 'square', f: n[0], at: at, dur: dur, vol: 0.09, lp: 4000, attack: 0.005 });
+        at += dur * (gapFactor || 1.3);
+      });
     });
-    return at;
+    return total;
   }
 
   window.SFX = {
     supported: !!AC,
+    hasAudioSession: HAS_SESSION,
     play: play,
     playNotes: playNotes,
     babble: babble,
     wake: wake,
     get: function (key) { return !!prefs[key]; },
-    set: function (key, on) { prefs[key] = !!on; savePrefs(); if (on) wake(); },
+    set: function (key, on) {
+      prefs[key] = !!on;
+      savePrefs();
+      if (key === 'silentOk') applySession();
+      if (on) wake();
+    },
     anyOn: function () { return prefs.sfx || prefs.voice; },
     toggleAll: function () {
       const on = !(prefs.sfx || prefs.voice);
