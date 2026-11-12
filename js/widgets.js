@@ -1039,7 +1039,317 @@
     });
   }
 
-  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor, uno, adc, pwm, baud, lcd, melody };
+  // shared: draw a polyline of [x, y] points (already in SVG units)
+  function pathOf(pts) { return pts.map((p, i) => (i ? 'L' : 'M') + p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' '); }
+
+  // tiny repeatable random generator, so noise doesn't jump around while you drag a filter slider
+  function rng(seed) { let s = seed >>> 0; return () => { s = (s * 1664525 + 1013904223) >>> 0; return s / 4294967296; }; }
+
+  // ======================================================================
+  // m5-1: what is a signal (frequency, amplitude, sampling)
+  function signal(el) {
+    el.innerHTML = `<div class="wg-signal">
+      <svg class="wg-graph wide" viewBox="0 0 340 170" role="img" aria-label="A wave, and the points where the Arduino samples it">
+        <path class="g-axis" d="M30 10 V150 H336"/>
+        <text class="g-txt" x="26" y="16" text-anchor="end">5V</text><text class="g-txt" x="26" y="83" text-anchor="end">2.5</text><text class="g-txt" x="26" y="152" text-anchor="end">0</text>
+        <text class="g-txt" x="333" y="165" text-anchor="end">100 ms</text>
+        <path class="g-grid" d="M30 80 H336"/>
+        <path class="g-curve" data-out="wave"/>
+        <path class="g-sampled" data-out="sampled"/>
+        <g data-out="dots"></g>
+      </svg>
+      <div class="wg-controls">
+        <label><span>Frequency: <b data-out="f"></b></span><input type="range" min="5" max="100" step="1" value="20" data-in="f" aria-label="Frequency"></label>
+        <label><span>Amplitude: <b data-out="a"></b></span><input type="range" min="0.1" max="2.4" step="0.1" value="1.5" data-in="a" aria-label="Amplitude"></label>
+        <label><span>Arduino sample rate: <b data-out="fs"></b></span><input type="range" min="20" max="1000" step="10" value="400" data-in="fs" aria-label="Sample rate"></label>
+      </div>
+      <div class="wg-readout"><p data-out="info" class="small"></p><p data-out="status" class="wg-status"></p></div>
+    </div>`;
+    const X = (t) => 30 + (t / 0.1) * 306;              // t in seconds, window = 100 ms
+    const Y = (v) => 150 - (v / 5) * 140;
+    function update() {
+      const f = +el.querySelector('[data-in="f"]').value;
+      const A = +el.querySelector('[data-in="a"]').value;
+      const fs = +el.querySelector('[data-in="fs"]').value;
+      const v = (t) => 2.5 + A * Math.sin(2 * Math.PI * f * t);
+      const pts = [];
+      for (let i = 0; i <= 400; i++) { const t = (i / 400) * 0.1; pts.push([X(t), Y(v(t))]); }
+      el.querySelector('[data-out="wave"]').setAttribute('d', pathOf(pts));
+      const sp = [];
+      for (let t = 0; t <= 0.1 + 1e-9; t += 1 / fs) sp.push([X(t), Y(v(t))]);
+      el.querySelector('[data-out="sampled"]').setAttribute('d', pathOf(sp));
+      el.querySelector('[data-out="dots"]').innerHTML = sp.length <= 120 ? sp.map((p) => `<circle class="g-dot small" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="2.6"/>`).join('') : '';
+      el.querySelector('[data-out="f"]').textContent = f + ' Hz';
+      el.querySelector('[data-out="a"]').textContent = A.toFixed(1) + ' V';
+      el.querySelector('[data-out="fs"]').textContent = fs + ' samples/s';
+      el.querySelector('[data-out="info"]').innerHTML = `Period = 1 ÷ ${f} Hz = <b>${round(1000 / f, 1)} ms</b> per wave · peak-to-peak = <b>${(2 * A).toFixed(1)} V</b> · samples per wave: <b>${round(fs / f, 1)}</b>`;
+      const per = fs / f;
+      el.querySelector('[data-out="status"]').innerHTML = per < 2
+        ? '🚨 <b>Too slow!</b> Fewer than 2 samples per wave: the pink dots draw a fake, slower wave (that’s called <b>aliasing</b>).'
+        : per < 6 ? '⚠️ Barely enough. The shape is rough: aim for 5–10 samples per wave or more.'
+          : '✅ Plenty of samples: the pink line follows the real wave nicely.';
+    }
+    el.addEventListener('input', update);
+    update();
+  }
+
+  // ======================================================================
+  // m5-2: noise + moving-average filter
+  function noise(el) {
+    const N = 400;
+    const st = { level: 0.5, hum: false, win: 8, seed: 7 };
+    el.innerHTML = `<div class="wg-noise">
+      <svg class="wg-graph wide" viewBox="0 0 340 170" role="img" aria-label="Noisy signal and the filtered version">
+        <path class="g-axis" d="M10 10 V160 H336"/>
+        <path class="g-raw" data-out="raw"/>
+        <path class="g-curve" data-out="clean"/>
+      </svg>
+      <p class="small"><span class="key-raw">▬ raw (noisy)</span> &nbsp; <span class="key-clean">▬ filtered</span></p>
+      <div class="wg-controls">
+        <label><span>Noise level: <b data-out="lvl"></b></span><input type="range" min="0" max="1.5" step="0.05" value="0.5" data-in="lvl" aria-label="Noise level"></label>
+        <label><span>Filter strength (average of the last <b data-out="win"></b> readings)</span><input type="range" min="1" max="40" step="1" value="8" data-in="win" aria-label="Filter window"></label>
+        <label class="switch"><input type="checkbox" data-in="hum"><span class="switch-ui" aria-hidden="true"></span><span><b>Add mains hum</b> (the 50/60 Hz buzz your body picks up from the walls)</span></label>
+      </div>
+      <p class="wg-status" data-out="status"></p>
+    </div>`;
+    function update() {
+      const r = rng(st.seed);
+      const raw = [];
+      for (let i = 0; i < N; i++) {
+        const t = i / N; // 2 seconds shown, 200 samples per second
+        // the "real" signal: a calm line with two muscle-like bumps
+        const bump = (c, w) => Math.exp(-Math.pow((t - c) / w, 2));
+        const real = 1 + 1.6 * bump(0.3, 0.07) + 2.2 * bump(0.72, 0.09);
+        const hum = st.hum ? 0.6 * Math.sin(2 * Math.PI * 50 * t) : 0; // a fast buzz (drawn a bit slower than real 50 Hz so you can see it)
+        raw.push(real + hum + (r() * 2 - 1) * st.level);
+      }
+      const clean = raw.map((_, i) => {
+        let s = 0; let n = 0;
+        for (let k = Math.max(0, i - st.win + 1); k <= i; k++) { s += raw[k]; n++; }
+        return s / n;
+      });
+      const toPts = (arr) => arr.map((v, i) => [10 + (i / (N - 1)) * 326, 155 - Math.max(-0.3, Math.min(4.6, v)) * 31]);
+      el.querySelector('[data-out="raw"]').setAttribute('d', pathOf(toPts(raw)));
+      el.querySelector('[data-out="clean"]').setAttribute('d', pathOf(toPts(clean)));
+      el.querySelector('[data-out="lvl"]').textContent = st.level === 0 ? 'none' : st.level < 0.4 ? 'a little' : st.level < 0.9 ? 'medium' : 'LOTS';
+      el.querySelector('[data-out="win"]').textContent = st.win;
+      el.querySelector('[data-out="status"]').innerHTML = st.win === 1
+        ? '😵 No filtering: you see every wiggle.'
+        : st.win < 6 ? '🙂 Light smoothing: some fuzz left, but fast changes stay sharp.'
+          : st.win < 20 ? '😎 Nice and smooth. The bumps are still clear.'
+            : '🐢 Super smooth, but notice the bumps get <b>late and blurry</b>. Filtering always trades smoothness for speed.';
+    }
+    el.addEventListener('input', (e) => {
+      const k = e.target.getAttribute('data-in');
+      if (k === 'lvl') { st.level = +e.target.value; st.seed++; }
+      if (k === 'win') st.win = +e.target.value;
+      if (k === 'hum') st.hum = e.target.checked;
+      update();
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m5-3 / m6-2: amplifier with clipping. cfg.mode = 'simple' (gain slider) or 'opamp' (resistor formulas)
+  const GAINS = [1, 10, 50, 100, 200, 500, 1000, 2000];
+  function amp(el, cfg) {
+    const opamp = cfg.mode === 'opamp';
+    const st = { mv: 2, gi: 6, kind: 'non', r1: 1000, rf: 99000 };
+    el.innerHTML = `<div class="wg-amp">
+      ${opamp ? `<div class="wg-seg"><button class="seg" type="button" data-kind="non">Non-inverting</button><button class="seg" type="button" data-kind="inv">Inverting</button></div>
+        <div class="wg-fields row">
+          <label><span data-out="r1name">R1 (to virtual ground)</span><span><input type="number" min="1" step="any" value="1000" data-in="r1"> Ω</span></label>
+          <label>Rf (feedback) <span><input type="number" min="0" step="any" value="99000" data-in="rf"> Ω</span></label>
+        </div>` : ''}
+      <div class="wg-controls">
+        <label><span>Input signal: <b data-out="in"></b> peak (tiny, like a muscle!)</span><input type="range" min="0.5" max="10" step="0.5" value="2" data-in="mv" aria-label="Input amplitude in millivolts"></label>
+        ${opamp ? '' : '<label><span>Gain: <b data-out="g"></b></span><input type="range" min="0" max="7" step="1" value="6" data-in="gi" aria-label="Gain"></label>'}
+      </div>
+      <div class="wg-amp-plots">
+        <figure><svg class="wg-graph" viewBox="0 0 200 110" aria-hidden="true"><path class="g-axis" d="M10 55 H196 M10 6 V104"/><path class="g-raw strong" data-out="pin"/></svg><figcaption class="small muted">Input (±10 mV scale)</figcaption></figure>
+        <figure><svg class="wg-graph" viewBox="0 0 200 110" aria-hidden="true"><path class="g-rail" d="M10 8 H196 M10 102 H196"/><path class="g-axis" d="M10 55 H196 M10 6 V104"/><path class="g-curve" data-out="pout"/></svg><figcaption class="small muted">Output (0–5 V, centered on 2.5 V)</figcaption></figure>
+      </div>
+      <div class="wg-readout"><p class="wg-big" data-out="res"></p><p class="wg-status" data-out="status"></p></div>
+    </div>`;
+    const out = (k) => el.querySelector(`[data-out="${k}"]`);
+    function gain() {
+      if (!opamp) return GAINS[st.gi];
+      return st.kind === 'non' ? 1 + st.rf / st.r1 : -st.rf / st.r1;
+    }
+    function update() {
+      const G = gain();
+      const inA = st.mv / 1000;
+      const inPts = [];
+      const outPts = [];
+      let clipped = false;
+      for (let i = 0; i <= 200; i++) {
+        const t = i / 200;
+        const vin = inA * Math.sin(2 * Math.PI * 2 * t);
+        let vo = 2.5 + G * vin;
+        if (vo > 5 || vo < 0) clipped = true;
+        vo = Math.max(0, Math.min(5, vo));
+        inPts.push([10 + t * 186, 55 - (vin / 0.01) * 47]);
+        outPts.push([10 + t * 186, 102 - (vo / 5) * 94]);
+      }
+      out('pin').setAttribute('d', pathOf(inPts));
+      out('pout').setAttribute('d', pathOf(outPts));
+      out('in').textContent = st.mv + ' mV';
+      if (!opamp) out('g').textContent = '× ' + GAINS[st.gi];
+      if (opamp) {
+        out('r1name').textContent = st.kind === 'non' ? 'R1 (to virtual ground)' : 'Rin (from the input)';
+        el.querySelectorAll('[data-kind]').forEach((b) => b.classList.toggle('on', b.getAttribute('data-kind') === st.kind));
+      }
+      const swing = Math.min(2.5, Math.abs(G) * inA);
+      const formula = opamp
+        ? (st.kind === 'non' ? `Gain = 1 + Rf ÷ R1 = 1 + ${sig(st.rf)} ÷ ${sig(st.r1)} = <b>${sig(G)}</b>` : `Gain = −Rf ÷ Rin = −${sig(st.rf)} ÷ ${sig(st.r1)} = <b>${sig(G)}</b> (the minus means upside-down)`)
+        : `Gain × ${GAINS[st.gi]}`;
+      out('res').innerHTML = `${formula} → output swings <b>±${sig(Math.abs(G) * inA)} V</b>`;
+      const steps = Math.round((swing * 2) / (5 / 1023));
+      out('status').innerHTML = clipped
+        ? '✂️ <b>CLIPPING!</b> The output wants to go past 0 V or 5 V (the “rails”), so the tops get chopped flat. Too much gain.'
+        : Math.abs(G) * inA < 0.02
+          ? `🔍 Too small for the Arduino to notice (only about ${steps} ADC steps). More gain!`
+          : `✅ Nice: the Arduino would see this wave spread over about <b>${steps}</b> of its 1023 steps.`;
+    }
+    el.addEventListener('input', (e) => {
+      const k = e.target.getAttribute('data-in');
+      const v = parseFloat(e.target.value);
+      if (k === 'mv') st.mv = v;
+      if (k === 'gi') st.gi = v;
+      if (k === 'r1' && v > 0) st.r1 = v;
+      if (k === 'rf' && v >= 0) st.rf = v;
+      update();
+    });
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-kind]');
+      if (b) { st.kind = b.getAttribute('data-kind'); sfx('tap'); update(); }
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m6-1: op-amp as comparator vs follower (golden rules)
+  function comparator(el) {
+    const st = { vp: 3, vm: 2, fb: false };
+    el.innerHTML = `<div class="wg-cmp">
+      <div class="wg-seg"><button class="seg" type="button" data-fb="0">No feedback (comparator)</button><button class="seg" type="button" data-fb="1">Feedback wire (follower)</button></div>
+      <svg class="wg-svg" viewBox="0 0 320 170" role="img" aria-label="Op-amp with two inputs and one output">
+        <path d="M110 30 L110 140 L210 85 Z" class="opamp-body"/>
+        <text x="120" y="62" class="wg-label">+</text><text x="120" y="122" class="wg-label">−</text>
+        <path d="M40 57 H110 M40 117 H110 M210 85 H290" class="wg-batt"/>
+        <path data-out="fbwire" d="M250 85 V158 H80 V117" class="wg-fb"/>
+        <text x="40" y="50" class="wg-label small" data-out="lp">V+ = 3 V</text>
+        <text x="40" y="110" class="wg-label small" data-out="lm">V− = 2 V</text>
+        <circle cx="290" cy="85" r="10" class="wg-out-led" data-out="led"/>
+        <text x="236" y="70" class="wg-label" data-out="lo">5 V</text>
+      </svg>
+      <div class="wg-controls">
+        <label><span>V+ (non-inverting input): <b data-out="vp"></b></span><input type="range" min="0" max="5" step="0.1" value="3" data-in="vp" aria-label="V plus"></label>
+        <label data-out="vmrow"><span>V− (inverting input): <b data-out="vm"></b></span><input type="range" min="0" max="5" step="0.1" value="2" data-in="vm" aria-label="V minus"></label>
+      </div>
+      <p class="wg-status" data-out="status"></p>
+    </div>`;
+    const out = (k) => el.querySelector(`[data-out="${k}"]`);
+    function update() {
+      const vout = st.fb ? st.vp : (st.vp > st.vm ? 5 : 0);
+      const vm = st.fb ? vout : st.vm;
+      out('vp').textContent = st.vp.toFixed(1) + ' V';
+      out('vm').textContent = vm.toFixed(1) + ' V' + (st.fb ? ' (follows the output!)' : '');
+      out('lp').textContent = 'V+ = ' + st.vp.toFixed(1) + ' V';
+      out('lm').textContent = 'V− = ' + vm.toFixed(1) + ' V';
+      out('lo').textContent = vout.toFixed(1) + ' V';
+      out('fbwire').style.opacity = st.fb ? 1 : 0.12;
+      out('led').style.fill = `rgba(182,255,59,${(0.15 + (vout / 5) * 0.85).toFixed(2)})`;
+      el.querySelector('[data-in="vm"]').disabled = st.fb;
+      el.querySelectorAll('[data-fb]').forEach((b) => b.classList.toggle('on', (b.getAttribute('data-fb') === '1') === st.fb));
+      out('status').innerHTML = st.fb
+        ? `🤝 <b>Follower:</b> the output is wired back to V−. The op-amp adjusts its output until V− equals V+ (golden rule 1), so the output simply copies the input: <b>${st.vp.toFixed(1)} V</b>.`
+        : `⚖️ <b>Comparator:</b> no feedback, so the huge gain slams the output to a rail: V+ ${st.vp > st.vm ? '&gt;' : '≤'} V− → output <b>${st.vp > st.vm ? 'HIGH (5 V)' : 'LOW (0 V)'}</b>. Even a tiny difference does it!`;
+    }
+    el.addEventListener('input', (e) => {
+      const k = e.target.getAttribute('data-in');
+      if (k === 'vp') st.vp = +e.target.value;
+      if (k === 'vm') st.vm = +e.target.value;
+      update();
+    });
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-fb]');
+      if (b) { st.fb = b.getAttribute('data-fb') === '1'; sfx('tap'); update(); }
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m6-3: RC filter frequency response
+  const FR = [[1000, '1 kΩ'], [3300, '3.3 kΩ'], [10000, '10 kΩ'], [33000, '33 kΩ'], [100000, '100 kΩ']];
+  const FC = [[10e-9, '10 nF'], [33e-9, '33 nF'], [100e-9, '100 nF'], [1e-6, '1 µF'], [10e-6, '10 µF']];
+  function filter(el) {
+    const st = { type: 'lp', ri: 2, ci: 2, f: 100 };
+    el.innerHTML = `<div class="wg-filter">
+      <div class="wg-seg">
+        <button class="seg" type="button" data-type="lp">Low-pass</button>
+        <button class="seg" type="button" data-type="hp">High-pass</button>
+        <button class="seg" type="button" data-type="emg">EMG band (20–450 Hz)</button>
+      </div>
+      <div class="wg-fields row" data-out="rc">
+        <label>Resistor <select data-in="r">${FR.map((r, i) => `<option value="${i}" ${i === 2 ? 'selected' : ''}>${r[1]}</option>`).join('')}</select></label>
+        <label>Capacitor <select data-in="c">${FC.map((c, i) => `<option value="${i}" ${i === 2 ? 'selected' : ''}>${c[1]}</option>`).join('')}</select></label>
+      </div>
+      <svg class="wg-graph wide" viewBox="0 0 340 160" role="img" aria-label="How much of each frequency gets through the filter">
+        <path class="g-axis" d="M34 10 V130 H336"/>
+        <text class="g-txt" x="30" y="16" text-anchor="end">100%</text><text class="g-txt" x="30" y="132" text-anchor="end">0</text>
+        ${[1, 10, 100, 1000, 10000].map((f, i) => `<text class="g-txt" x="${34 + i * 75.5}" y="146" text-anchor="middle">${f >= 1000 ? f / 1000 + 'k' : f} Hz</text>`).join('')}
+        <path class="g-curve" data-out="resp"/>
+        <path class="g-grid" data-out="mark"/>
+        <circle class="g-dot" r="5" data-out="dot"/>
+      </svg>
+      <div class="wg-controls"><label><span>Test frequency: <b data-out="f"></b></span><input type="range" min="0" max="4" step="0.01" value="2" data-in="f" aria-label="Test frequency"></label></div>
+      <div class="wg-readout"><p class="wg-big" data-out="fc"></p><p data-out="pass" class="small"></p></div>
+    </div>`;
+    const out = (k) => el.querySelector(`[data-out="${k}"]`);
+    const X = (f) => 34 + Math.log10(f) * 75.5;
+    function resp(f, fc) {
+      const lp = (fc0) => 1 / Math.sqrt(1 + Math.pow(f / fc0, 2));
+      const hp = (fc0) => (f / fc0) / Math.sqrt(1 + Math.pow(f / fc0, 2));
+      if (st.type === 'lp') return lp(fc);
+      if (st.type === 'hp') return hp(fc);
+      return hp(20) * lp(450);
+    }
+    function update() {
+      const fc = 1 / (2 * Math.PI * FR[st.ri][0] * FC[st.ci][0]);
+      const pts = [];
+      for (let i = 0; i <= 200; i++) { const f = Math.pow(10, (i / 200) * 4); pts.push([X(f), 130 - resp(f, fc) * 118]); }
+      out('resp').setAttribute('d', pathOf(pts));
+      const g = resp(st.f, fc);
+      out('mark').setAttribute('d', `M${X(st.f).toFixed(1)} 10 V130`);
+      out('dot').setAttribute('cx', X(st.f).toFixed(1));
+      out('dot').setAttribute('cy', (130 - g * 118).toFixed(1));
+      out('f').textContent = st.f >= 1000 ? sig(st.f / 1000) + ' kHz' : sig(st.f) + ' Hz';
+      out('rc').style.display = st.type === 'emg' ? 'none' : '';
+      out('fc').innerHTML = st.type === 'emg'
+        ? 'Keeps roughly <b>20–450 Hz</b>: the range where muscle signals live. Slow drift (from moving cables) and fast hiss both get cut.'
+        : `Cutoff f<sub>c</sub> = 1 ÷ (2π × R × C) = <b>${fc >= 1000 ? sig(fc / 1000) + ' kHz' : sig(fc) + ' Hz'}</b>`;
+      out('pass').innerHTML = `At ${out('f').textContent}, <b>${Math.round(g * 100)}%</b> of the signal gets through. ` +
+        (st.type === 'lp' ? 'Low-pass: slow stuff passes, fast stuff is blocked.' : st.type === 'hp' ? 'High-pass: fast stuff passes, slow stuff (and steady DC) is blocked.' : '');
+      el.querySelectorAll('[data-type]').forEach((b) => b.classList.toggle('on', b.getAttribute('data-type') === st.type));
+    }
+    el.addEventListener('input', (e) => {
+      if (e.target.getAttribute('data-in') === 'f') { st.f = Math.pow(10, +e.target.value); update(); }
+    });
+    el.addEventListener('change', (e) => {
+      const k = e.target.getAttribute('data-in');
+      if (k === 'r') st.ri = +e.target.value;
+      if (k === 'c') st.ci = +e.target.value;
+      update();
+    });
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-type]');
+      if (b) { st.type = b.getAttribute('data-type'); sfx('tap'); update(); }
+    });
+    update();
+  }
+
+  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor, uno, adc, pwm, baud, lcd, melody, signal, noise, amp, comparator, filter };
 
   window.Widgets = {
     render: function (el, cfg) {

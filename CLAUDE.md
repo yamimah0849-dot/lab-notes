@@ -102,7 +102,9 @@ local save, and Export/Import backup.
   `ohm` (magic triangle), `ledCalc` (LED resistor + color bands), `power` (magic smoke), `colorCode` (stripe decoder),
   `combo` (series/parallel), `capCharge` (RC curve), `diode` (one-way bouncer), `transistor` (NPN switch).
   `uno` (pin map), `adc` (analogRead), `pwm` (duty cycle), `baud` (mismatch gibberish), `lcd` (16x2 simulator),
-  `melody` (passive-buzzer jingle + keys; uses `SFX.playNotes`).
+  `melody` (passive-buzzer jingle + keys; uses `SFX.playNotes`), `signal` (frequency/sampling/aliasing),
+  `noise` (moving average + hum), `amp` (mode 'simple' gain or 'opamp' formulas, with clipping),
+  `comparator` (no feedback vs follower), `filter` (RC low/high-pass + EMG band).
   `runDots(el, path, group, n, speedFn)` animates current dots around a loop. Add more with `Widgets.add`.
 - Arduino pin plan used across lessons: LED 9, water sensor + on 7 / S on A0, buzzer 8, servo 9, DC motor PWM 6
   (Servo library disables PWM on 9/10), LCD RS 12, E 11, D4–D7 on 5, 4, 3, 2. Simulators: Wokwi
@@ -148,7 +150,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - [x] 3. Modules 0-1
 - [x] 4. Modules 2-3
 - [x] 5. Module 4 (Arduino)
-- [ ] 6. Modules 5-6
+- [x] 6. Modules 5-6
 - [ ] 7. Final boss (EMG + Muscle Meter page)
 - [ ] Wrap-up: full check + laptop and iPhone instructions
 
@@ -185,3 +187,8 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - 2026-11-12: Phase 5 built: module-4.js (Uno + IDE + Blink, analogRead/water sensor/PWM, Serial Monitor/Plotter,
   buzzers + raw 16x2 LCD with a fixed contrast divider + servo + DC motor with transistor and flyback diode),
   6 new widgets, copyable code blocks, Wokwi/Tinkercad challenges. sw.js VERSION v4.
+- 2026-11-12: Phase 6 built: module-5.js (signals + sampling, noise + filters + EMA smoothing, amplification)
+  and module-6.js (op-amp golden rules, inverting/non-inverting amps + virtual ground, active filters +
+  instrumentation amps + full EMG chain), 5 new widgets, ElectroBOOM/EEVblog videos. sw.js VERSION v5.
+  EMG module facts (from the Muscle Sensor v3 manual): pins SIG, +Vs, −Vs, GND; two 9V batteries for ±9 V;
+  SIG is already amplified, rectified and smoothed, 0 V to +Vs; gain trimmer clockwise = more gain.

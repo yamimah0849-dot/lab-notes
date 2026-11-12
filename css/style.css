@@ -1072,6 +1072,23 @@ label.btn { position: relative; }
 .key small { font: 700 .62rem var(--font-body); color: #555; }
 .key:active { transform: translateY(3px); box-shadow: none; background: var(--yellow); }
 
+/* signals, noise, amplifiers, op-amps, filters */
+.wg-graph.wide { display: block; width: 100%; max-width: 600px; margin: 0 auto; }
+.g-sampled { fill: none; stroke: var(--pink); stroke-width: 2; stroke-linejoin: round; }
+.g-dot.small { fill: var(--pink); }
+.g-raw { fill: none; stroke: rgba(170, 163, 214, .55); stroke-width: 1.4; stroke-linejoin: round; }
+.g-raw.strong { stroke: var(--cyan); stroke-width: 2.5; }
+.g-rail { fill: none; stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 5 4; }
+.key-raw { color: #aaa3d6; font-weight: 800; }
+.key-clean { color: var(--yellow); font-weight: 800; }
+.wg-amp-plots { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin: 10px 0; }
+.wg-amp-plots figure { margin: 0; padding: 8px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0, 0, 0, .2); }
+.wg-amp-plots .wg-graph { width: 100%; max-width: none; }
+.opamp-body { fill: rgba(155, 92, 255, .15); stroke: var(--purple); stroke-width: 3; stroke-linejoin: round; }
+.wg-fb { fill: none; stroke: var(--yellow); stroke-width: 3; stroke-dasharray: 6 4; transition: opacity .3s; }
+.wg-out-led { stroke: var(--text); stroke-width: 2; transition: fill .2s; }
+.wg input[type="range"]:disabled { opacity: .35; }
+
 /* wiring tables */
 .pin-table { width: 100%; margin: 10px 0 14px; border-collapse: collapse; font-size: .92rem; }
 .pin-table th, .pin-table td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; }
