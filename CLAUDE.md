@@ -228,7 +228,8 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   with the learner's real GitHub token (they create and paste it themselves). sw.js VERSION v7.
 - 2026-11-12: Learner reported no sound on the iPhone. Fixed: resume audio from iOS's "interrupted" state,
   play on the first tap, and an iPhone-only "Play even when my iPhone is on silent" switch (Audio Session
-  API, default on). Verified sounds still work in Chrome; not verifiable on a real iPhone from here. sw.js v8.
+  API, default on). Verified sounds still work in Chrome. sw.js v8. The learner confirmed sound now works on
+  their iPhone.
 
 ## Ideas for later (not built)
 - More Muscle Meter games (flex-to-jump runner, reaction tester), CSV export of a recording.
