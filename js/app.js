@@ -190,6 +190,17 @@
   S.on('tick', () => { updateTopbar(); refreshStats(); });
   S.on('change', () => route());
 
+  // progress arrived from another device (GitHub sync)
+  S.on('synced', (e) => {
+    updateTopbar(true);
+    refreshStats();
+    if (e.gained > 0) toast('☁️ Synced: <b>+' + e.gained + ' XP</b> from your other device');
+    if (e.rankUp) toast('🎉 New rank: ' + esc(e.rankUp.emoji + ' ' + e.rankUp.title));
+    // refresh simple pages; never interrupt a lesson, the Muscle Meter or Settings
+    const v = location.hash.replace(/^#\/?/, '').split('/')[0];
+    if (!current && v !== 'meter' && v !== 'settings' && v !== 'backup') route();
+  });
+
   // ---------- router
   let current = null; // the lesson on screen, if any
 
@@ -319,8 +330,10 @@
       </section>
 
       <section class="card backup-strip">
-        <p>💾 Your progress is saved in <b>this browser on this device</b> only. Back it up now and then!</p>
-        <a class="btn btn-ghost" href="#/settings">Backup &amp; restore</a>
+        <p>${window.LabSync.status().connected
+          ? '☁️ Sync is on: your progress is shared with your other devices through GitHub.'
+          : '💾 Progress is saved on this device only. Turn on <b>☁️ Sync</b> to share it between your laptop and iPhone.'}</p>
+        <a class="btn btn-ghost" href="#/settings">Sync &amp; backup</a>
       </section>`;
     Mascot.mount($('#heroOhmi'), { variant: 'hero' }).say(greeting());
   }
@@ -636,7 +649,7 @@
             <p class="mission-quote">“${pick(['That was… beautiful. I need a moment.', 'The neighbours felt that one.', 'You are now officially more powerful than my coffee machine.'])}”</p>
             <button class="btn btn-primary" data-action="close">Charge it again</button>`,
         }));
-        if (firstTime) S.addXp(50, 'Lab Beam fired');
+        S.awardOnce('beam', 50, 'first Lab Beam fired');
       },
     });
   }
@@ -684,15 +697,17 @@
         ${installHtml()}
       </section>
 
+      <section class="card prose" id="syncCard">
+        <p class="eyebrow">Sync</p>
+        <h1>☁️ Same progress on every device</h1>
+        <div data-sync-body>${syncHtml()}</div>
+      </section>
+
       <section class="card prose">
         <p class="eyebrow">Keep your progress safe</p>
         <h1>💾 Backup &amp; restore</h1>
-        <p>Your XP, streak and finished lessons are saved <b>inside this browser, on this device</b>. Nothing is uploaded anywhere. That keeps the app free, but it means:</p>
-        <ul>
-          <li>Your laptop and your iPhone keep <b>separate</b> progress.</li>
-          <li>Clearing your browser’s data would erase it.</li>
-        </ul>
-        <p>So export a backup file now and then. To move progress to another device: <b>Export</b> here, send the file to the other device (email it to yourself, OneDrive, AirDrop…), then <b>Import</b> it there.</p>
+        <p>Your XP, streak and finished lessons are saved <b>inside this browser, on this device</b>. Without Sync, your laptop and iPhone keep <b>separate</b> progress, and clearing your browser’s data would erase it.</p>
+        <p>A backup file is a handy extra safety net. <b>Import</b> combines a backup with this device’s progress: nothing gets deleted.</p>
         <div class="summary-grid">
           <div><span class="display">${st.xp}</span><span>XP</span></div>
           <div><span class="display">${FLAT.filter((l) => isDone(l.id)).length}</span><span>lessons done</span></div>
@@ -741,18 +756,109 @@
     };
     $('[data-reset]').onclick = () => confirmBox({
       title: 'Reset EVERYTHING?',
-      body: 'All XP, streaks and finished lessons on this device will be erased. This can’t be undone.',
+      body: 'All XP, streaks and finished lessons on this device will be erased. This can’t be undone.' +
+        (window.LabSync.status().connected ? '<br><br>This device will also <b>stop syncing</b>, so your cloud copy and your other devices keep their progress.' : ''),
       yes: 'Yes, wipe it',
       danger: true,
     }, () => {
+      if (window.LabSync.status().connected) window.LabSync.disconnect();
       S.reset();
       toast('Progress reset. Welcome, new intern! 🧪');
       location.hash = '#/';
     });
+
+    // ---- sync card
+    const syncCard = $('#syncCard');
+    syncCard.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-sync]');
+      if (!b) return;
+      const act = b.getAttribute('data-sync');
+      const body = $('[data-sync-body]');
+      const msg = $('.sync-msg', syncCard);
+      if (act === 'show') {
+        const inp = $('[data-sync-token]', syncCard);
+        inp.type = inp.type === 'password' ? 'text' : 'password';
+        b.textContent = inp.type === 'password' ? '👁️ Show' : '🙈 Hide';
+      }
+      if (act === 'connect') {
+        const token = $('[data-sync-token]', syncCard).value;
+        b.disabled = true;
+        msg.textContent = '🔄 Connecting to GitHub…';
+        window.LabSync.connect(token).then((res) => {
+          if (res.ok) {
+            SFX.play('levelUp');
+            toast('☁️ Connected as @' + esc(res.login) + '! Progress from your devices is now combined.');
+            viewSettings();
+          } else {
+            b.disabled = false;
+            msg.textContent = '⚠️ ' + res.error;
+            SFX.play('wrong');
+          }
+        });
+      }
+      if (act === 'now') {
+        b.disabled = true;
+        window.LabSync.syncNow().then((st) => {
+          body.innerHTML = syncHtml();
+          if (!st.lastError) toast('☁️ Synced!');
+        });
+      }
+      if (act === 'off') {
+        confirmBox({
+          title: 'Disconnect this device?',
+          body: 'This device stops syncing. Your progress stays here, and the cloud copy stays on GitHub for your other devices.',
+          yes: 'Disconnect',
+        }, () => { window.LabSync.disconnect(); viewSettings(); });
+      }
+    });
   }
 
+  function ago(t) {
+    if (!t) return 'not yet';
+    const s = Math.round((Date.now() - t) / 1000);
+    if (s < 60) return 'just now';
+    if (s < 3600) return Math.round(s / 60) + ' min ago';
+    if (s < 86400) return Math.round(s / 3600) + ' h ago';
+    return new Date(t).toLocaleDateString();
+  }
+
+  function syncHtml() {
+    const st = window.LabSync.status();
+    if (st.connected) {
+      return `<p>✅ Connected to GitHub as <b>@${esc(st.login || '?')}</b>. This device syncs by itself: when you open the app, after every quiz or challenge, and every few minutes while you study.</p>
+        <p class="small ${st.lastError ? 'warn-msg' : 'muted'}">${st.busy ? '🔄 Syncing…' : 'Last synced: ' + ago(st.lastSync)}${st.lastError ? '<br>⚠️ ' + esc(st.lastError) : ''}</p>
+        <div class="btn-row">
+          <button class="btn btn-cyan" type="button" data-sync="now">🔄 Sync now</button>
+          ${st.gistUrl ? `<a class="btn btn-ghost" href="${esc(st.gistUrl)}" target="_blank" rel="noopener">View the cloud copy ↗</a>` : ''}
+          <button class="btn btn-ghost" type="button" data-sync="off">Disconnect this device</button>
+        </div>
+        <p class="small muted">Not set up on your other device yet? Open Settings there and connect it the same way (with its own token).</p>`;
+    }
+    return `<p>Your laptop and iPhone can share XP, streaks and finished lessons through your <b>free GitHub account</b>. Set it up once on each device (about 5 minutes):</p>
+      <ol class="steps">
+        <li>Open <a href="${window.LabSync.TOKEN_URL}" target="_blank" rel="noopener">this GitHub page</a> and sign in if asked. It makes a <b>token</b>: a special password that can <i>only</i> save gists (little note files), nothing else.</li>
+        <li>Check that <b>only the “gist” box</b> is ticked. Choose an <b>Expiration</b>: “No expiration” means you never have to redo this; a date is a bit safer (the app will tell you when it runs out).</li>
+        <li>Scroll down and press <b>Generate token</b>. Copy the token (it starts with <code>ghp_</code>). GitHub only shows it once!</li>
+        <li>Paste it here and press <b>Connect</b>.</li>
+      </ol>
+      <div class="sync-form">
+        <input type="password" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="ghp_…" data-sync-token aria-label="GitHub token">
+        <button class="btn btn-ghost" type="button" data-sync="show">👁️ Show</button>
+        <button class="btn btn-primary" type="button" data-sync="connect">☁️ Connect</button>
+      </div>
+      <p class="sync-msg" role="status"></p>
+      <p class="small muted">📱 On your iPhone, do these same steps <b>on the phone</b> and make a second token. One token per device means you can switch one off without the other.</p>
+      <p class="small muted">🔒 The token is saved only in this browser and only ever sent to GitHub. Your progress goes into a <b>secret gist</b> on your account: hidden from search, but anyone with its exact link could read it (it only holds XP, lessons and study minutes).</p>`;
+  }
+
+  // keep the sync card fresh (but never wipe a token you're typing)
+  window.LabSync.onChange(() => {
+    const body = $('[data-sync-body]');
+    if (body && !$('[data-sync-token]', body)) body.innerHTML = syncHtml();
+  });
+
   const STORAGE_NOTE = '<p class="small muted">Heads-up: the installed app keeps its <b>own</b> progress, separate from the browser tab. ' +
-    'To move progress between them, use Export and Import below.</p>';
+    'Turn on ☁️ Sync below and they’ll share it automatically.</p>';
 
   function installHtml() {
     if (isStandalone()) {
@@ -798,12 +904,12 @@
     const reader = new FileReader();
     reader.onload = () => {
       confirmBox({
-        title: 'Replace your progress?',
-        body: 'Importing replaces the progress on this device with the progress saved in <b>' + esc(file.name) + '</b>.',
-        yes: 'Import it',
+        title: 'Add this backup?',
+        body: 'The progress in <b>' + esc(file.name) + '</b> will be <b>combined</b> with this device’s progress. Nothing gets deleted.',
+        yes: 'Combine them',
       }, () => {
         const res = S.importJson(String(reader.result));
-        if (res.ok) toast('✅ Backup imported!');
+        if (res.ok) toast('✅ Backup combined with this device’s progress!');
         else {
           const msg = $('.import-msg');
           if (msg) msg.textContent = '⚠️ ' + res.error;

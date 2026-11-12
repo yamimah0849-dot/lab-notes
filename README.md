@@ -48,11 +48,13 @@ http://localhost:8000. Close the small "Lab Notes server" window to stop it.
 It works offline after the first visit. On iPhone, the Muscle Meter runs in **Demo mode**
 (iPhones can't talk to an Arduino over USB from a web page).
 
-## Your progress
+## Your progress (and sharing it between devices)
 
-Progress is saved on each device separately (that's what keeps the app free: no server).
-Use **Settings → Export backup** on one device and **Import backup** on the other to move it.
-The installed iPhone app keeps its own progress, separate from Safari.
+Progress is saved on each device. To share it between your laptop and iPhone, turn on
+**Settings → ☁️ Sync** on each device: it uses a free GitHub token (only allowed to save gists) and keeps
+your progress in one secret gist. Devices **merge** their progress, so nothing is ever lost.
+Without sync, use **Export backup** / **Import backup** (importing also merges).
+The installed iPhone app counts as its own device, separate from Safari.
 
 ## Updates
 

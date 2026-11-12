@@ -86,7 +86,17 @@ local save, and Export/Import backup.
 ## Files
 - `index.html`: page shell (top bar, footer, script tags). New `data/module-N.js` files need a script tag here.
 - `css/style.css`: all styling. Colors are variables in `:root`.
-- `js/store.js`: progress in localStorage (key `labnotes.progress.v1`), XP, ranks, streak, study timer, export/import.
+- `js/store.js`: progress in localStorage (key `labnotes.progress.v1`, format version 2), ranks, streak, study timer.
+  Progress is **mergeable**: XP is never stored by itself but recalculated by `computeXp()` from records
+  (correct answers, passed quizzes, challenges, goal days, `bonus` like `beam`/`legacy`). Study seconds are
+  stored per device (`days[d].by[deviceId]`, device id in `labnotes.device.v1`). `mergeStates(a, b)` is
+  order-independent and idempotent; `mergeIn(other)` merges into this device (used by Import and sync) and emits
+  `synced`. Use `awardOnce(key, xp, reason)` for one-time bonuses. Import now combines instead of replacing.
+- `js/sync.js`: optional GitHub sync. The learner pastes a classic token with only the `gist` scope
+  (`LabSync.TOKEN_URL` pre-fills it). Progress lives in one secret gist file `lab-notes-progress.json` (found by
+  name, so a second device finds it automatically). Sync = GET gist → merge → PATCH if needed; runs on start,
+  4 s after progress, every 3 min while visible, on `online`, and when the app is hidden. Config in
+  `labnotes.sync.v1`. Never put the token in a URL. Reset disconnects sync first (otherwise the cloud would refill it).
 - `js/sfx.js`: all sounds, synthesized live with the Web Audio API (no audio files, nothing copyrighted).
   `SFX.play(name)`: tap, spark, boing, correct ("pin-pon" chime), wrong (buzzer + zap), sting (dun-dun-DUNN),
   sadTrombone, whoosh, fanfare, levelUp, goal, coin. `SFX.babble(mood, delay, text)` = Dr. Ohmi's gibberish voice.
@@ -207,7 +217,12 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   counter, Ohmi reactions, beam charges). Not testable here: a real Arduino + EMG over Web Serial.
   README rewritten with laptop + iPhone instructions. Course complete.
 
+- 2026-11-12: Learner asked for shared progress across laptop + iPhone ("make the best"). Built GitHub gist sync
+  (js/sync.js) + mergeable progress format (store.js v2) + merge-on-import + Settings "Sync" card with token steps.
+  Tested in the built-in browser with a fake GitHub (mocked fetch): bad/wrong token messages, gist creation,
+  pulling another device's lessons and minutes, auto-upload after a challenge, combined daily goal. Not tested
+  with the learner's real GitHub token (they create and paste it themselves). sw.js VERSION v7.
+
 ## Ideas for later (not built)
-- Sync progress between devices (would need a free backend or a GitHub Gist token; skipped to stay simple).
 - More Muscle Meter games (flex-to-jump runner, reaction tester), CSV export of a recording.
 - A printable kit checklist / wiring cheat sheet per module.
