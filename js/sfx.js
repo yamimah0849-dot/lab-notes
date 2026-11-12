@@ -201,6 +201,16 @@
       [1046.5, 1318.51, 1567.98, 2093].forEach(function (f, i) { bell(f, i * 0.12, 0.8, 0.22); });
     },
 
+    // multimeter continuity beep
+    beep: function () { tone({ type: 'square', f: 2400, dur: 0.35, vol: 0.07, lp: 5000 }); },
+
+    // a resistor letting out its magic smoke: crackle + hiss
+    sizzle: function () {
+      noise({ ftype: 'highpass', f: 1800, dur: 0.9, vol: 0.14, attack: 0.05 });
+      for (let i = 0; i < 7; i++) noise({ ftype: 'bandpass', f: 3000 + Math.random() * 3000, at: Math.random() * 0.7, dur: 0.03, vol: 0.2, q: 2 });
+      tone({ f: 900, to: 300, dur: 0.6, vol: 0.05 });
+    },
+
     // finishing a challenge
     coin: function () {
       tone({ type: 'triangle', f: 1318.51, dur: 0.07, vol: 0.18 });

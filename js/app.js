@@ -352,6 +352,7 @@
 
   // ---------- lesson page
   let bbConfigs = [];
+  let wgConfigs = [];
 
   function renderSection(s) {
     const title = s.title ? `<h2>${s.title}</h2>` : '';
@@ -360,6 +361,14 @@
         const i = bbConfigs.push(s) - 1;
         return `<section class="card">${title}${s.html || ''}<div class="bb" data-bb="${i}"></div></section>`;
       }
+      case 'widget': {
+        const i = wgConfigs.push(s) - 1;
+        return `<section class="card">${title}${s.html || ''}<div class="wg" data-wg="${i}"></div>${s.after || ''}</section>`;
+      }
+      case 'code':
+        return `<section class="card">${title}${s.html || ''}
+          <div class="code-box"><button class="btn btn-ghost code-copy" type="button" data-copy-code>📋 Copy code</button>
+          <pre class="code"><code>${esc(s.code)}</code></pre></div>${s.after || ''}</section>`;
       case 'danger':
         return `<section class="card callout danger">${title}${s.html}</section>`;
       case 'tip':
@@ -424,6 +433,7 @@
     const m = meta.module;
     S.markStarted(id);
     bbConfigs = [];
+    wgConfigs = [];
     const idx = FLAT.indexOf(meta);
     const prev = FLAT[idx - 1];
     const next = FLAT[idx + 1];
@@ -465,6 +475,7 @@
       </nav>`;
 
     $$('[data-bb]', app).forEach((el) => BB.render(el, Object.assign({ onSelect: () => SFX.play('spark') }, bbConfigs[+el.getAttribute('data-bb')])));
+    $$('[data-wg]', app).forEach((el) => window.Widgets.render(el, wgConfigs[+el.getAttribute('data-wg')]));
     Mascot.mount($('#headOhmi'), { variant: 'mini' }).say(L.intro);
     current = { id: id, meta: meta, L: L };
     renderQuiz();
@@ -843,6 +854,12 @@
         if (box) box.open = true;
         toast('Couldn’t copy automatically, so I opened the message below. Copy it by hand.');
       });
+      return;
+    }
+    const codeBtn = e.target.closest('[data-copy-code]');
+    if (codeBtn) {
+      const code = codeBtn.parentElement.querySelector('code').textContent;
+      copyText(code).then((ok) => toast(ok ? '📋 Code copied! Paste it into the Arduino IDE.' : 'Couldn’t copy automatically. Select the code and copy it by hand.'));
       return;
     }
     if (e.target.closest('[data-ranks]')) showRanks();

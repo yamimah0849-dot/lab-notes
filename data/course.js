@@ -1,6 +1,28 @@
 /* The course map: every module and lesson, in order.
    A lesson only becomes playable once its content exists in a data/module-N.js file.
    "phase" = the build phase when that module's lessons get written. */
+/* Link helpers used by lesson files.
+   falstad([...lines]) opens the free Falstad simulator with our own circuit (same text format as Falstad's File → Export).
+   falstadExample('file.txt') opens one of Falstad's built-in example circuits. */
+window.LabLinks = {
+  falstad: function (lines) {
+    const text = ['$ 1 0.000005 10.20027730826997 50 9 43 5e-11'].concat(lines).join('\n') + '\n';
+    return 'https://www.falstad.com/circuit/circuitjs.html?cct=' + encodeURIComponent(text);
+  },
+  falstadExample: function (file) {
+    return 'https://www.falstad.com/circuit/circuitjs.html?startCircuit=' + encodeURIComponent(file);
+  },
+  // a battery (volts) driving one resistor (ohms): the simplest possible loop
+  batteryResistor: function (volts, ohms) {
+    return window.LabLinks.falstad([
+      'v 128 336 128 112 0 0 40 ' + volts + ' 0 0 0.5',
+      'r 128 112 384 112 0 ' + ohms,
+      'w 384 112 384 336 0',
+      'w 384 336 128 336 0',
+    ]);
+  },
+};
+
 window.LabNotesCourse = {
   kit: [
     'Arduino Uno', 'breadboard', 'jumper wires', 'USB cable', '16x2 LCD (raw pins, no I2C)',

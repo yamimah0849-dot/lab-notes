@@ -17,6 +17,9 @@ and is hosted free on GitHub Pages.
 2. Build in phases. After each phase, stop, give plain test steps and wait for the learner to confirm.
 3. Update the progress log below at the end of every phase.
 4. After a confirmed phase, commit, then walk the learner through pushing to GitHub.
+5. **Update 2026-11-12:** the learner said "from now finish the whole thing without stopping". So phases 3–7 and the
+   final guide are built back-to-back: test each phase yourself, commit + merge + push it, then continue.
+   Report once at the end with test steps for everything.
 
 ## Links
 - GitHub user: `yamimah0849-dot`
@@ -94,7 +97,15 @@ local save, and Export/Import backup.
   Parts: `wire {from,to,color,arc}`, `lead {hole,color,label}` (wire coming from off the board), `resistor {from,to,bands}`, `led {anode,cathode,color,lit}`.
 - `js/app.js`: hash router (`#/`, `#/module/N`, `#/lesson/ID`, `#/settings` (old `#/backup` still works)), pages, quiz,
   overlays (MISSION COMPLETE, rank up, goal; each can have a `sound`), Ask Claude, top-bar mute button, soundboard.
-- `data/course.js`: the course map (all modules + lesson titles, which phase builds them) and the kit list.
+- `js/widgets.js`: interactive lesson widgets, used by sections `{type: 'widget', widget: '<name>'}`:
+  `sort` (Safe or Sus game), `meter` (multimeter dial), `joints` (solder joints), `circuit` (animated loop),
+  `ohm` (magic triangle), `ledCalc` (LED resistor + color bands), `power` (magic smoke). Add more with `Widgets.add`.
+  Shared helpers (`amps`, `watts`, `ohms`, `e12Up`, `bandsFor`, `resistorSvg`) are on `Widgets.helpers`.
+- Section type `{type: 'code', code: '...'}` shows a code block with a Copy button (for Arduino lessons).
+- `data/course.js`: the course map (all modules + lesson titles, which phase builds them), the kit list, and
+  `LabLinks` (Falstad links: `falstad([lines])` for custom circuits via `?cct=`, `falstadExample('file.txt')` for
+  built-ins like ohms.txt, cap.txt, induct.txt, diodevar.txt, npn.txt, transswitch.txt, filt-lopass.txt,
+  amp-invert.txt, amp-noninvert.txt, amp-diff.txt, `batteryResistor(V, R)`). Hovering a part in Falstad shows I, V, P.
 - `data/module-N.js`: lesson content. A lesson is playable once its id has content here.
 - `start-lab.bat`: double-click to run the app on the laptop (starts Python's web server on 127.0.0.1:8000, opens the browser).
 - `manifest.webmanifest` + `icons/` (icon.svg source, icon-192/512.png, apple-touch-icon.png 180): makes the app installable.
@@ -127,7 +138,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - [x] 1. App shell: theme, mascot, dashboard, XP/ranks/streak/goal, export/import, 1 sample lesson
 - [x] Extra (learner's request): anime-style sound effects + Dr. Ohmi babble voice
 - [x] 2. Go live: GitHub Pages, iPhone home-screen install, offline
-- [ ] 3. Modules 0-1
+- [x] 3. Modules 0-1
 - [ ] 4. Modules 2-3
 - [ ] 5. Module 4 (Arduino)
 - [ ] 6. Modules 5-6
@@ -157,4 +168,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   With the learner's OK, merged to `main`, pushed, and switched on GitHub Pages (main, root). Live at
   https://yamimah0849-dot.github.io/lab-notes/ with the service worker active (scope `/lab-notes/`).
 - 2026-11-12: The learner added Lab Notes to the iPhone home screen and confirmed it works. Phase 2 done.
-  Next: Phase 3 (Module 0 lessons m0-1, m0-3, m0-4 and Module 1 lessons m1-1, m1-2, m1-3).
+- 2026-11-12: Phase 3 built: lessons m0-1 (Lab Safety), m0-3 (Multimeter), m0-4 (Soldering), m1-1 (V/I/R),
+  m1-2 (Ohm's law), m1-3 (Power), each with 3 oEmbed-verified videos, 5 quiz questions and 1–2 challenges;
+  new widgets.js (7 widgets), module-1.js, Falstad links, new sounds (beep, sizzle), sw.js VERSION v2.
+  Checked in the built-in browser: all 7 lessons render, widgets work, no horizontal overflow at 375 px.

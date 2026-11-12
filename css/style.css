@@ -786,6 +786,163 @@ label.btn { position: relative; }
 .toast.xp { background: var(--lime); box-shadow: 4px 4px 0 var(--ink); }
 .toast.out { animation: toast-out .4s forwards; }
 
+/* ---------- interactive lesson widgets */
+.wg { margin: 10px 0; }
+.wg h4 { margin: 0 0 .4em; font-size: 1.05rem; color: var(--cyan); }
+.wg input[type="range"] { width: 100%; accent-color: var(--cyan); min-height: 32px; }
+.wg select, .wg input[type="number"] {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: 700 1rem var(--font-body);
+}
+.wg input[type="number"] { width: 110px; }
+.wg-controls { display: grid; gap: 12px; margin: 12px 0; }
+.wg-controls label { display: grid; gap: 4px; font-weight: 700; }
+.wg-readout { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0, 0, 0, .22); }
+.wg-readout p { margin-bottom: .4em; }
+.wg-big { font-size: 1.15rem; font-weight: 800; }
+.wg-big b { color: var(--yellow); }
+.wg-status { margin: 0; font-weight: 800; }
+.wg-fields { display: grid; gap: 10px; margin: 10px 0; }
+.wg-fields.row { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+.wg-fields label { display: grid; gap: 4px; font-weight: 800; }
+.wg-fields label span { display: flex; align-items: center; gap: 8px; font-weight: 600; color: var(--muted); }
+.wg-seg { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.seg {
+  min-width: 48px;
+  min-height: 42px;
+  padding: 6px 12px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: 800 1.05rem var(--font-body);
+  cursor: pointer;
+}
+.seg.on { border-color: var(--yellow); background: rgba(255, 210, 63, .15); color: var(--yellow); }
+.wg-info { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0, 0, 0, .22); }
+.wg-info p { margin-bottom: .5em; }
+
+/* safe or sus */
+.wg-sort { display: grid; gap: 12px; }
+.sort-card { padding: 14px; border: 2px solid var(--line); border-radius: 14px; background: rgba(0, 0, 0, .2); }
+.sort-card.right { border-color: rgba(182, 255, 59, .6); }
+.sort-card.wrong { border-color: rgba(255, 77, 109, .7); }
+.sort-text { font-weight: 800; }
+.sort-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.sort-btns .btn { flex: 1 1 120px; }
+.sort-btns .btn.picked { border-color: var(--yellow); color: var(--yellow); }
+.sort-why { margin: 10px 0 0; }
+.sort-score { margin: 4px 0 0; font-weight: 800; color: var(--yellow); }
+
+/* multimeter */
+.wg-meter { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 640px) { .wg-meter { grid-template-columns: 230px 1fr; } }
+.wg-meter-svg { width: 100%; max-width: 230px; margin: 0 auto; display: block; }
+.wg-lcd { font: 400 34px 'Courier New', monospace; fill: #142414; }
+.wg-lcd-unit { font: 800 11px var(--font-body); fill: #142414; }
+.wg-dial-label { font: 800 15px var(--font-body); fill: var(--muted); cursor: pointer; }
+.wg-dial-label.on { fill: var(--yellow); }
+.wg-knob { transition: transform .35s cubic-bezier(.3, 1.5, .5, 1); }
+.wg-jack-label { font: 800 11px var(--font-body); fill: var(--muted); }
+.wg-jacks circle { transition: stroke-width .2s; }
+.wg-jacks .lit-red { stroke: #ff4d6d; stroke-width: 6; filter: drop-shadow(0 0 6px #ff4d6d); }
+.wg-jacks .lit-black { stroke: #f4f4f4; stroke-width: 6; filter: drop-shadow(0 0 4px #fff); }
+
+/* solder joints */
+.wg-joints { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+.joint { margin: 0; padding: 10px; border: 2px solid var(--line); border-radius: 12px; background: rgba(0, 0, 0, .25); }
+.joint.ok { border-color: rgba(182, 255, 59, .6); }
+.joint.bad { border-color: rgba(255, 77, 109, .45); }
+.joint svg { display: block; width: 100%; height: auto; background: #f1efe6; border-radius: 8px; }
+.joint figcaption { display: grid; gap: 4px; margin-top: 8px; font-size: .88rem; line-height: 1.4; }
+.joint figcaption span { color: var(--muted); }
+
+/* animated circuit */
+.wg-svg { display: block; width: 100%; max-width: 520px; height: auto; margin: 0 auto; }
+.wg-loop { fill: none; stroke: #6e62c9; stroke-width: 5; stroke-linejoin: round; }
+.wg-cover { fill: #1b1442; }
+.wg-batt { stroke: var(--text); stroke-width: 4; stroke-linecap: round; }
+.wg-res { fill: none; stroke: var(--orange); stroke-width: 4; stroke-linejoin: round; stroke-linecap: round; }
+.wg-contact { fill: var(--text); }
+.wg-lever { stroke: var(--text); stroke-width: 4; stroke-linecap: round; transition: all .2s; }
+.wg-meter-c { fill: #1b1442; stroke: var(--cyan); stroke-width: 3; }
+.wg-label { fill: var(--text); font: 800 14px var(--font-body); }
+.wg-label.small { font-size: 11px; fill: var(--muted); }
+.wg-sign { font: 800 16px var(--font-body); }
+.wg-sign.pos { fill: #ff5a63; }
+.wg-sign.neg { fill: #5b9bff; }
+.wg-dot { fill: var(--yellow); filter: drop-shadow(0 0 3px var(--yellow)); }
+.wg-circuit.open .wg-dot { fill: #8a83b8; filter: none; }
+
+/* Ohm's law triangle */
+.wg-ohm { display: grid; gap: 16px; align-items: start; }
+@media (min-width: 640px) { .wg-ohm { grid-template-columns: 220px 1fr; } }
+.wg-tri { width: 100%; max-width: 220px; margin: 0 auto; display: block; }
+.tri-shape { fill: rgba(155, 92, 255, .15); stroke: var(--purple); stroke-width: 4; stroke-linejoin: round; }
+.tri-line { stroke: var(--purple); stroke-width: 3; }
+.tri-letter { cursor: pointer; }
+.tri-letter circle { fill: transparent; }
+.tri-letter text { fill: var(--text); font: 400 40px var(--font-display); }
+.tri-letter:hover circle { fill: rgba(34, 230, 255, .15); }
+.tri-letter.covered circle { fill: var(--pink); stroke: var(--ink); stroke-width: 3; }
+.tri-letter.covered text { fill: #fff; }
+.wg-formula { margin: 0 0 6px; color: var(--yellow); font-family: var(--font-display); font-size: 2rem; letter-spacing: .05em; }
+
+/* LED calculator */
+.wg-led-out { padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(0, 0, 0, .22); }
+.wg-led-row { display: flex; gap: 16px; align-items: center; }
+.wg-led-dot { flex: none; width: 34px; height: 34px; border-radius: 50% 50% 8px 8px; border: 2px solid rgba(255, 255, 255, .5); }
+.wg-res-svg { display: block; width: 100%; max-width: 260px; height: auto; margin: 8px 0; }
+
+/* power / magic smoke */
+.wg-power-stage { position: relative; display: grid; justify-items: center; padding: 50px 0 6px; overflow: hidden; }
+.wg-power-res { width: 100%; max-width: 280px; height: auto; }
+.wg-res-body { transition: fill .3s; }
+.wg-power-tag { margin: 4px 0 0; color: var(--muted); font-size: .85rem; font-weight: 700; }
+.wg-pbar > span { box-shadow: none; }
+.wg-smoke { position: absolute; top: 40px; left: 50%; width: 120px; height: 60px; transform: translateX(-50%); pointer-events: none; }
+.wg-smoke span {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: rgba(200, 200, 210, .55);
+  opacity: 0;
+  filter: blur(2px);
+}
+.wg-smoke.on span { animation: smoke 2.4s ease-out infinite; }
+.wg-smoke.lots span { background: rgba(140, 140, 150, .75); animation-duration: 1.4s; }
+.wg-smoke span:nth-child(2) { animation-delay: .6s !important; margin-left: -18px; }
+.wg-smoke span:nth-child(3) { animation-delay: 1.2s !important; margin-left: 14px; }
+.wg-smoke span:nth-child(4) { animation-delay: 1.8s !important; margin-left: -4px; }
+@keyframes smoke {
+  0% { opacity: 0; transform: translateY(0) scale(.5); }
+  20% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(-50px) scale(2.2); }
+}
+
+/* code blocks (Arduino lessons) */
+.code-box { position: relative; }
+.code-copy { position: absolute; top: 8px; right: 8px; min-height: 36px; padding: 6px 12px; font-size: .95rem; }
+.code {
+  margin: 0;
+  padding: 52px 14px 14px;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #0a0718;
+  color: #d9f7ff;
+  font: 500 .86rem/1.55 'Cascadia Code', Consolas, 'Courier New', monospace;
+  tab-size: 2;
+}
+
 /* ---------- animations */
 @keyframes pop { 0% { transform: scale(.6); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
 @keyframes bump { 0%, 100% { transform: scale(1); } 40% { transform: scale(1.25); box-shadow: 0 0 16px var(--lime); } }
