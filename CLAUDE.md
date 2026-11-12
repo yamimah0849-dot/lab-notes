@@ -128,6 +128,9 @@ local save, and Export/Import backup.
 - `sw.js`: service worker for offline use. App files are network-first (4 s timeout, then the saved copy);
   Google Fonts are cache-first. **When adding a file (e.g. `data/module-1.js`), add it to `PRECACHE` and bump `VERSION`.**
 - `.nojekyll`: tells GitHub Pages to serve files as-is.
+- `make-desktop-shortcut.bat` + `icons/lab-notes.ico`: creates `Desktop\Lab Notes.lnk` → Chrome (or Edge)
+  `--app=https://yamimah0849-dot.github.io/lab-notes/` with the Dr. Ohmi icon. Created on 2026-11-12 for the learner.
+  (The .ico was built from icon-512.png with PNG-compressed entries 256/64/48/32/16.)
 - Testing note: the app's built-in browser pane can't register service workers. Test offline mode in real Chrome.
 - **Shared origin warning:** every GitHub Pages project of this user lives on `yamimah0849-dot.github.io`, so they
   share localStorage and Cache Storage (another project uses caches named `partslab-*`). Always prefix storage keys

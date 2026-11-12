@@ -30,6 +30,8 @@ synthesized sound effects, and offline support.
 
 1. Open https://yamimah0849-dot.github.io/lab-notes/ in **Chrome** or **Edge**.
 2. Optional: install it as an app with **Settings → Install Lab Notes** (or the install icon at the right of the address bar).
+   Or double-click **`make-desktop-shortcut.bat`** in this folder: it puts a "Lab Notes" shortcut with Dr. Ohmi's
+   face on your Desktop that opens the app in its own window.
 3. The **Muscle Meter** (final boss) needs Chrome or Edge on a computer, because it talks to the Arduino over USB (Web Serial).
 
 ### Run your own copy locally (for editing)
