@@ -111,6 +111,11 @@ local save, and Export/Import backup.
   (https://wokwi.com/projects/new/arduino-uno, no account to run) and Tinkercad Arduino starters.
   Shared helpers (`amps`, `watts`, `ohms`, `e12Up`, `bandsFor`, `resistorSvg`) are on `Widgets.helpers`.
 - Section type `{type: 'code', code: '...'}` shows a code block with a Copy button (for Arduino lessons).
+- `js/meter.js`: the Muscle Meter page (`#/meter`): Web Serial at 115200 baud (one number per line), Demo mode
+  (hold button/spacebar), EMA smoothing, relax/flex calibration, % power, flex counter with hysteresis (60%/30%),
+  Lab Beam (charge above 70%) → overlay + one-time +50 XP. `MuscleMeter.SKETCH` holds the Arduino sketch.
+  Final-boss widgets: `muscle` (simulated EMG + envelope), `protect` (SIG divider), `checklist` (safety).
+  Passing the last remaining lesson shows a "COURSE CLEARED" graduation screen.
 - `data/course.js`: the course map (all modules + lesson titles, which phase builds them), the kit list, and
   `LabLinks` (Falstad links: `falstad([lines])` for custom circuits via `?cct=`, `falstadExample('file.txt')` for
   built-ins like ohms.txt, cap.txt, induct.txt, diodevar.txt, npn.txt, transswitch.txt, filt-lopass.txt,
@@ -151,8 +156,8 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - [x] 4. Modules 2-3
 - [x] 5. Module 4 (Arduino)
 - [x] 6. Modules 5-6
-- [ ] 7. Final boss (EMG + Muscle Meter page)
-- [ ] Wrap-up: full check + laptop and iPhone instructions
+- [x] 7. Final boss (EMG + Muscle Meter page)
+- [x] Wrap-up: full check + laptop and iPhone instructions (README.md)
 
 ## Progress log
 - 2026-11-11: Planned the project and confirmed the kit. Created the folder `Desktop\lab-notes`,
@@ -192,3 +197,14 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   instrumentation amps + full EMG chain), 5 new widgets, ElectroBOOM/EEVblog videos. sw.js VERSION v5.
   EMG module facts (from the Muscle Sensor v3 manual): pins SIG, +Vs, −Vs, GND; two 9V batteries for ±9 V;
   SIG is already amplified, rectified and smoothed, 0 V to +Vs; gain trimmer clockwise = more gain.
+- 2026-11-12: Phase 7 built: module-7.js (muscle physiology, inside the EMG module + ±9 V wiring + 10k/10k SIG
+  protection divider, safe build with checklist + electrode placement + gain tuning + servo bonus, Muscle Meter
+  lesson + LCD bar bonus), js/meter.js (Web Serial + Demo mode), 3 widgets, graduation screen. sw.js VERSION v6.
+  Tested: all 27 lessons render, no overflow at 375 px; Demo mode verified in real Chrome (power rises, flex
+  counter, Ohmi reactions, beam charges). Not testable here: a real Arduino + EMG over Web Serial.
+  README rewritten with laptop + iPhone instructions. Course complete.
+
+## Ideas for later (not built)
+- Sync progress between devices (would need a free backend or a GitHub Gist token; skipped to stay simple).
+- More Muscle Meter games (flex-to-jump runner, reaction tester), CSV export of a recording.
+- A printable kit checklist / wiring cheat sheet per module.

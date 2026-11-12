@@ -202,6 +202,7 @@
     $$('.nav a').forEach((a) => a.classList.toggle('active', a.getAttribute('data-nav') === (isSettings ? 'settings' : 'home')));
     if (view === 'lesson') viewLesson(arg);
     else if (view === 'module') viewModule(arg);
+    else if (view === 'meter') viewMeter();
     else if (isSettings) viewSettings();
     else viewDashboard();
     updateTopbar();
@@ -312,6 +313,11 @@
         <div class="module-grid">${COURSE.modules.map(moduleCard).join('')}</div>
       </section>
 
+      <section class="card backup-strip meter-strip">
+        <p>💪 <b>Muscle Meter:</b> the final-boss tool. Connect your EMG sensor (laptop, Chrome or Edge), or play with Demo mode anywhere.</p>
+        <a class="btn btn-primary" href="#/meter">Open the Muscle Meter</a>
+      </section>
+
       <section class="card backup-strip">
         <p>💾 Your progress is saved in <b>this browser on this device</b> only. Back it up now and then!</p>
         <a class="btn btn-ghost" href="#/settings">Backup &amp; restore</a>
@@ -406,7 +412,9 @@
         <ol class="steps">${c.steps.map((s) => `<li>${s}</li>`).join('')}</ol>
         ${c.troubleshoot ? `<details class="trouble"><summary>Not working? Check these</summary><ul>${c.troubleshoot.map((t) => `<li>${t}</li>`).join('')}</ul></details>` : ''}
         <div class="btn-row">
-          ${c.link ? `<a class="btn btn-ghost" href="${esc(c.link.url)}" target="_blank" rel="noopener">${esc(c.link.label)} ↗</a>` : ''}
+          ${c.link ? (c.link.url.charAt(0) === '#'
+            ? `<a class="btn btn-ghost" href="${esc(c.link.url)}">${esc(c.link.label)} →</a>`
+            : `<a class="btn btn-ghost" href="${esc(c.link.url)}" target="_blank" rel="noopener">${esc(c.link.label)} ↗</a>`) : ''}
           <button class="btn ${done ? 'btn-done' : 'btn-cyan'}" type="button" data-challenge="${i}" ${done ? 'disabled' : ''}>${done ? '✓ Done' : `I did it! (+${S.XP.challenge} XP)`}</button>
         </div>
       </article>`;
@@ -570,6 +578,17 @@
               <a class="btn btn-ghost" href="#/" data-action="home">Lab dashboard</a>
             </div>`,
         }));
+        // finished EVERY lesson? Time for graduation.
+        if (res.firstPass && FLAT.every((l) => isDone(l.id))) {
+          queueOverlay(() => ({
+            className: 'win grad', confetti: true, mood: 'proud', sound: 'levelUp',
+            html: `<p class="eyebrow">All 27 lessons complete</p>
+              <h2 class="mission-title">COURSE<br>CLEARED!</h2>
+              <p class="mission-sub">From “what is voltage?” to reading your own muscles. 🧠⚡💪</p>
+              <p class="mission-quote">“I… I’m not crying. It’s just solder flux in my eyes. Congratulations, Mad Scientist.”</p>
+              <button class="btn btn-primary" data-action="close">Accept graduation</button>`,
+          }));
+        }
       } else {
         ohmi.say(pick(LINES.fail), 'shock', { silent: true });
         queueOverlay(() => ({
@@ -603,6 +622,23 @@
     Mascot.mount($('#soonOhmi'), { variant: 'mini' }).say(
       `This lesson is still being assembled. It arrives in <b>Phase ${m.phase}</b>!` +
       (next ? ` Meanwhile, try <a href="#/lesson/${next.id}">${esc(next.title)}</a>.` : ''), 'think');
+  }
+
+  // ---------- the Muscle Meter page (js/meter.js)
+  function viewMeter() {
+    app.innerHTML = '<nav class="crumbs"><a href="#/">Lab</a> › <a href="#/module/7">Final boss</a> › Muscle Meter</nav><div id="meterRoot"></div>';
+    window.MuscleMeter.mount($('#meterRoot'), {
+      onBeam: (firstTime) => {
+        queueOverlay(() => ({
+          className: 'win beam', confetti: true, mood: 'proud', sound: 'fanfare',
+          html: `<h2 class="mission-title">SUPER LAB<br>BEAM!!!</h2>
+            <p class="mission-sub">Your muscle just powered a laser. Probably. ⚡</p>
+            <p class="mission-quote">“${pick(['That was… beautiful. I need a moment.', 'The neighbours felt that one.', 'You are now officially more powerful than my coffee machine.'])}”</p>
+            <button class="btn btn-primary" data-action="close">Charge it again</button>`,
+        }));
+        if (firstTime) S.addXp(50, 'Lab Beam fired');
+      },
+    });
   }
 
   function viewNotFound() {

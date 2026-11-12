@@ -1349,7 +1349,153 @@
     update();
   }
 
-  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor, uno, adc, pwm, baud, lcd, melody, signal, noise, amp, comparator, filter };
+  // ======================================================================
+  // m7-1: simulated muscle: effort -> raw EMG + envelope (scrolling canvas)
+  function muscle(el) {
+    el.innerHTML = `<div class="wg-muscle">
+      <canvas class="wg-canvas" height="180" aria-label="Simulated muscle signal: raw wiggles and the smooth envelope"></canvas>
+      <p class="small"><span class="key-raw">▬ raw EMG (fast wiggles around zero)</span> &nbsp; <span class="key-clean">▬ envelope (rectified + smoothed)</span></p>
+      <div class="wg-controls"><label><span>Effort: <b data-out="e">20%</b></span><input type="range" min="0" max="100" step="1" value="20" data-in="e" aria-label="Muscle effort"></label></div>
+      <p class="wg-status" data-out="status"></p>
+    </div>`;
+    const cv = el.querySelector('canvas');
+    const ctx = cv.getContext('2d');
+    const N = 500;
+    const raw = new Array(N).fill(0);
+    const env = new Array(N).fill(0);
+    let effort = 0.2;
+    let e = 0;
+    let last = performance.now();
+    function sample() {
+      // many motor units firing at random times = noisy bursts; more effort = more units, firing faster
+      const units = 2 + effort * 60;
+      let v = 0;
+      for (let k = 0; k < 3; k++) if (Math.random() < units / 240) v += (Math.random() < 0.5 ? -1 : 1) * (0.3 + Math.random() * (0.4 + effort));
+      v += (Math.random() * 2 - 1) * 0.04; // a little sensor noise
+      e = e + 0.04 * (Math.abs(v) - e);
+      raw.push(v); env.push(e * 2.2);
+      raw.shift(); env.shift();
+    }
+    function draw() {
+      const w = cv.clientWidth;
+      const dpr = window.devicePixelRatio || 1;
+      if (cv.width !== Math.round(w * dpr)) cv.width = Math.round(w * dpr);
+      if (cv.height !== Math.round(180 * dpr)) cv.height = Math.round(180 * dpr);
+      const h = cv.height;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, cv.width, h);
+      const mid = h / 2;
+      ctx.strokeStyle = 'rgba(170,163,214,.25)';
+      ctx.beginPath(); ctx.moveTo(0, mid); ctx.lineTo(cv.width, mid); ctx.stroke();
+      const line = (arr, color, width, scale, base) => {
+        ctx.strokeStyle = color; ctx.lineWidth = width * dpr; ctx.beginPath();
+        for (let i = 0; i < N; i++) {
+          const x = (i / (N - 1)) * cv.width;
+          const y = base - arr[i] * scale;
+          if (i) ctx.lineTo(x, y); else ctx.moveTo(x, y);
+        }
+        ctx.stroke();
+      };
+      line(raw, 'rgba(34,230,255,.75)', 1.2, h * 0.28, mid);
+      line(env, '#ffd23f', 2.5, h * 0.28, mid);
+    }
+    function frame(now) {
+      if (!el.isConnected) return;
+      const dt = Math.min(0.1, (now - last) / 1000);
+      last = now;
+      const n = Math.round(dt * 250);
+      for (let i = 0; i < n; i++) sample();
+      draw();
+      requestAnimationFrame(frame);
+    }
+    function update() {
+      effort = +el.querySelector('[data-in="e"]').value / 100;
+      el.querySelector('[data-out="e"]').textContent = Math.round(effort * 100) + '%';
+      el.querySelector('[data-out="status"]').innerHTML = effort < 0.05
+        ? '😴 Relaxed: almost no motor units firing. Just a little background noise.'
+        : effort < 0.5
+          ? `🙂 Gentle: about ${Math.round(2 + effort * 60)} motor units take turns firing. The envelope rises a little.`
+          : `💪 Strong: lots of motor units (about ${Math.round(2 + effort * 60)}) firing faster and together. Big wiggles, big envelope!`;
+    }
+    el.addEventListener('input', update);
+    update();
+    requestAnimationFrame(frame);
+  }
+
+  // ======================================================================
+  // m7-2: protect the Arduino pin with a voltage divider
+  function protect(el) {
+    const st = { vs: 9.5, r1: 10000, r2: 10000, on: true };
+    el.innerHTML = `<div class="wg-protect">
+      <svg class="wg-svg" viewBox="0 0 320 200" style="max-width:420px" role="img" aria-label="SIG goes through R1 to A0, and A0 goes through R2 to ground">
+        <text x="20" y="34" class="wg-label">SIG</text>
+        <path d="M60 30 H110 M150 30 H200 V60 M200 116 V150 H200 M200 30 H270" class="wg-loop thin"/>
+        <path class="wg-res" d="M110 30 l4 0 l4 -8 l6 16 l6 -16 l6 16 l6 -16 l4 8 l4 0" data-out="r1z"/>
+        <text x="130" y="16" class="wg-label small" text-anchor="middle" data-out="r1l">R1</text>
+        <path class="wg-res" d="M200 60 l0 4 l-8 4 l16 6 l-16 6 l16 6 l-16 6 l16 6 l-8 4 l0 12" data-out="r2z"/>
+        <text x="216" y="92" class="wg-label small" data-out="r2l">R2</text>
+        <text x="276" y="34" class="wg-label">A0</text>
+        <path d="M186 150 H214 M190 156 H210 M194 162 H206" class="wg-batt"/>
+        <text x="200" y="182" class="wg-label small" text-anchor="middle">GND</text>
+        <text x="20" y="80" class="wg-label small" data-out="vin"></text>
+        <text x="236" y="60" class="wg-label small" data-out="vout"></text>
+      </svg>
+      <div class="wg-fields row">
+        <label>Max SIG voltage (fresh 9V battery) <span><input type="number" step="0.1" min="0" value="9.5" data-in="vs"> V</span></label>
+        <label>R1 (top) <span><input type="number" min="1" step="any" value="10000" data-in="r1"> Ω</span></label>
+        <label>R2 (bottom) <span><input type="number" min="1" step="any" value="10000" data-in="r2"> Ω</span></label>
+      </div>
+      <label class="switch"><input type="checkbox" checked data-in="on"><span class="switch-ui" aria-hidden="true"></span><span><b>Use the divider</b> (turn off to see what happens without it)</span></label>
+      <div class="wg-readout"><p class="wg-big" data-out="res"></p><p class="wg-status" data-out="status"></p></div>
+    </div>`;
+    const out = (k) => el.querySelector(`[data-out="${k}"]`);
+    function update() {
+      const v = st.on ? st.vs * st.r2 / (st.r1 + st.r2) : st.vs;
+      out('vin').textContent = 'up to ' + st.vs + ' V';
+      out('vout').textContent = round(v, 2) + ' V';
+      ['r1z', 'r2z', 'r1l', 'r2l'].forEach((k) => { out(k).style.opacity = st.on ? 1 : 0.15; });
+      out('r1l').textContent = ohms(st.r1);
+      out('r2l').textContent = ohms(st.r2);
+      out('res').innerHTML = st.on
+        ? `A0 sees at most ${st.vs} × ${ohms(st.r2)} ÷ (${ohms(st.r1)} + ${ohms(st.r2)}) = <b>${round(v, 2)} V</b>`
+        : `Without a divider, A0 gets the full <b>${st.vs} V</b>.`;
+      out('status').innerHTML = v <= 5
+        ? `✅ <b>Safe:</b> always under 5 V. ${v < 3 ? 'A bit small, so you use less of the ADC range, but totally safe.' : 'And it still uses most of the 0–1023 range. 👌'}`
+        : '💥 <b>DANGER:</b> more than 5 V on an Arduino pin can damage it. Add (or fix) the divider!';
+      el.classList.toggle('bad', v > 5);
+    }
+    el.addEventListener('input', (e) => {
+      const k = e.target.getAttribute('data-in');
+      const val = parseFloat(e.target.value);
+      if (k === 'on') { st.on = e.target.checked; sfx(st.on ? 'correct' : 'wrong'); }
+      else if (k && val > 0) st[k] = val;
+      update();
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m7-3: pre-flight safety checklist
+  function checklist(el, cfg) {
+    el.innerHTML = `<div class="wg-check">
+      ${cfg.items.map((t, i) => `<label class="check-item"><input type="checkbox" data-i="${i}"><span>${t}</span></label>`).join('')}
+      <p class="wg-status" data-out="status"></p>
+    </div>`;
+    function update(fromClick) {
+      const boxes = Array.from(el.querySelectorAll('input[type="checkbox"]'));
+      const done = boxes.filter((b) => b.checked).length;
+      const all = done === boxes.length;
+      el.querySelector('[data-out="status"]').innerHTML = all
+        ? '🚀 <b>All clear! Cleared for launch.</b> Go get that muscle signal.'
+        : `${done} / ${boxes.length} checked. Every box, every time.`;
+      el.classList.toggle('all', all);
+      if (fromClick && all) sfx('levelUp');
+    }
+    el.addEventListener('change', () => update(true));
+    update(false);
+  }
+
+  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor, uno, adc, pwm, baud, lcd, melody, signal, noise, amp, comparator, filter, muscle, protect, checklist };
 
   window.Widgets = {
     render: function (el, cfg) {
