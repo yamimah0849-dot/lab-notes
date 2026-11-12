@@ -4,7 +4,7 @@
    - Google Fonts: saved once, then reused forever.
    When you add a new file to the app (e.g. data/module-1.js), add it to PRECACHE and bump VERSION. */
 
-const VERSION = 'v2';
+const VERSION = 'v3';
 const CACHE = 'labnotes-' + VERSION;
 const FONT_CACHE = 'labnotes-fonts';
 const FONT_CSS = 'https://fonts.googleapis.com/css2?family=Bangers&family=Nunito:wght@400;600;800&display=swap';
@@ -21,6 +21,8 @@ const PRECACHE = [
   'data/course.js',
   'data/module-0.js',
   'data/module-1.js',
+  'data/module-2.js',
+  'data/module-3.js',
   'manifest.webmanifest',
   'icons/icon.svg',
   'icons/icon-192.png',

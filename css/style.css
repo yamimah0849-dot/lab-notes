@@ -928,6 +928,71 @@ label.btn { position: relative; }
   100% { opacity: 0; transform: translateY(-50px) scale(2.2); }
 }
 
+/* color code */
+.wg-cc-res .wg-res-svg { max-width: 320px; margin: 0 auto 6px; }
+.wg-cc-rows { display: grid; gap: 10px; margin: 10px 0; }
+.wg-cc-rows p { margin: 0 0 4px; }
+.swatches { display: flex; flex-wrap: wrap; gap: 6px; }
+.swatch {
+  min-width: 40px;
+  height: 38px;
+  padding: 0 6px;
+  border: 2px solid rgba(255, 255, 255, .25);
+  border-radius: 8px;
+  background: var(--c);
+  color: #fff;
+  font: 800 .8rem var(--font-body);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .7);
+  cursor: pointer;
+}
+.swatch.light { color: #140f2e; text-shadow: none; }
+.swatch.on { border-color: var(--yellow); box-shadow: 0 0 0 3px var(--yellow); transform: translateY(-2px); }
+.wg-cc-rev { display: flex; flex-wrap: wrap; align-items: end; gap: 12px; }
+.wg-cc-rev label { display: grid; gap: 4px; font-weight: 800; }
+.wg-cc-rev label span { display: flex; align-items: center; gap: 8px; }
+
+/* series / parallel */
+.wg-combo-svg { max-width: 420px; margin: 6px auto; }
+
+/* capacitor graph */
+.wg-cap-main { display: flex; gap: 14px; align-items: stretch; margin: 10px 0; }
+.wg-bucket {
+  position: relative;
+  flex: none;
+  width: 46px;
+  overflow: hidden;
+  border: 3px solid var(--cyan);
+  border-top-width: 0;
+  border-radius: 0 0 12px 12px;
+  background: rgba(34, 230, 255, .05);
+}
+.wg-bucket span { position: absolute; left: 0; right: 0; bottom: 0; height: 0; background: linear-gradient(180deg, var(--cyan), #127b96); box-shadow: 0 0 12px var(--cyan); }
+.wg-graph { flex: 1; min-width: 0; max-width: 480px; height: auto; }
+.wg-cap-main { justify-content: center; }
+.g-axis { fill: none; stroke: var(--muted); stroke-width: 2; }
+.g-grid { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 4; }
+.g-txt { fill: var(--muted); font: 700 10px var(--font-body); }
+.g-curve { fill: none; stroke: var(--yellow); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 4px var(--yellow)); }
+.g-dot { fill: var(--pink); }
+
+/* diode */
+.wg-diode-tri { fill: var(--cyan); stroke: var(--text); stroke-width: 2; }
+.wg-diodeg, .wg-battg { transition: transform .3s; }
+.wg-lamp { fill: #3c3363; stroke: var(--text); stroke-width: 2; transition: fill .3s; }
+.wg-lamp-glow { fill: var(--yellow); opacity: 0; filter: blur(6px); transition: opacity .3s; }
+.wg-filament { fill: none; stroke: var(--muted); stroke-width: 2; }
+.wg-diode.on .wg-lamp { fill: #ffe680; }
+.wg-diode.on .wg-lamp-glow { opacity: .9; }
+.wg-diode.on .wg-filament { stroke: #ff8a3d; }
+.wg-diode:not(.on) .wg-dot { fill: #8a83b8; filter: none; }
+
+/* transistor */
+.wg-loop.thin { stroke-width: 4; }
+.wg-tr-body { fill: rgba(155, 92, 255, .12); stroke: var(--purple); stroke-width: 3; }
+.wg-led-tri { fill: #ff2d2d; stroke: var(--text); stroke-width: 2; }
+.wg-led-glow { fill: #ff2d2d; opacity: 0; filter: blur(7px); transition: opacity .2s; }
+.wg-src { fill: #3c3363; stroke: var(--text); stroke-width: 2; transition: fill .2s; }
+
 /* code blocks (Arduino lessons) */
 .code-box { position: relative; }
 .code-copy { position: absolute; top: 8px; right: 8px; min-height: 36px; padding: 6px 12px; font-size: .95rem; }

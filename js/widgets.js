@@ -525,7 +525,326 @@
     update();
   }
 
-  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power };
+  // shared: animate dots around a closed path. speedFn() returns px/second (0 = stopped, negative = backwards)
+  function runDots(el, path, group, n, speedFn) {
+    const len = path.getTotalLength();
+    let html = '';
+    for (let i = 0; i < n; i++) html += '<circle r="3.4" class="wg-dot"/>';
+    group.innerHTML = html;
+    const dots = Array.from(group.children);
+    let offset = 0;
+    let last = performance.now();
+    function frame(now) {
+      if (!el.isConnected) return;
+      const dt = Math.min(0.05, (now - last) / 1000);
+      last = now;
+      offset = ((offset + speedFn() * dt) % len + len) % len;
+      for (let i = 0; i < n; i++) {
+        const p = path.getPointAtLength((offset + (i * len) / n) % len);
+        dots[i].setAttribute('cx', p.x.toFixed(1));
+        dots[i].setAttribute('cy', p.y.toFixed(1));
+      }
+      requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ======================================================================
+  // m2-1: resistor color code decoder
+  const MULTS = BAND.slice(0, 7).map((b, i) => [b[0], b[1], Math.pow(10, i)]).concat([[GOLD[0], GOLD[1], 0.1], [SILVER[0], SILVER[1], 0.01]]);
+  const TOLS = [['gold', GOLD[1], '±5%'], ['silver', SILVER[1], '±10%'], ['brown', BAND[1][1], '±1%']];
+  const LIGHT = ['yellow', 'white', 'gold', 'silver', 'orange'];
+
+  function colorCode(el) {
+    const st = { d1: 2, d2: 2, m: 1, t: 0 }; // red red brown gold = 220 Ω
+    function sw(group, i, name, hex, label) {
+      return `<button type="button" class="swatch${LIGHT.indexOf(name) >= 0 ? ' light' : ''}" style="--c:${hex}" data-g="${group}" data-v="${i}" aria-label="${name} ${label}" title="${name}">${label}</button>`;
+    }
+    el.innerHTML = `<div class="wg-cc">
+      <div class="wg-cc-res"></div>
+      <p class="wg-big" data-out="val"></p>
+      <div class="wg-cc-rows">
+        <div><p class="small"><b>Band 1</b> (first digit)</p><div class="swatches">${BAND.map((b, i) => (i ? sw('d1', i, b[0], b[1], i) : '')).join('')}</div></div>
+        <div><p class="small"><b>Band 2</b> (second digit)</p><div class="swatches">${BAND.map((b, i) => sw('d2', i, b[0], b[1], i)).join('')}</div></div>
+        <div><p class="small"><b>Band 3</b> (multiplier: how many zeros)</p><div class="swatches">${MULTS.map((m, i) => sw('m', i, m[0], m[1], m[2] >= 1 ? '×' + (m[2] >= 1000 ? (m[2] >= 1e6 ? m[2] / 1e6 + 'M' : m[2] / 1000 + 'k') : m[2]) : '×' + m[2])).join('')}</div></div>
+        <div><p class="small"><b>Band 4</b> (tolerance)</p><div class="swatches">${TOLS.map((t, i) => sw('t', i, t[0], t[1], t[2])).join('')}</div></div>
+      </div>
+      <div class="wg-cc-rev">
+        <label>Or type a value: <span><input type="number" min="1" step="any" value="4700" data-in="rev"> Ω</span></label>
+        <button class="btn btn-ghost" type="button" data-in="go">🎨 Show its bands</button>
+      </div>
+    </div>`;
+    function update() {
+      const m = MULTS[st.m];
+      const val = (st.d1 * 10 + st.d2) * m[2];
+      const t = TOLS[st.t];
+      const pct = { '±5%': 0.05, '±10%': 0.1, '±1%': 0.01 }[t[2]];
+      el.querySelector('.wg-cc-res').innerHTML = resistorSvg([BAND[st.d1], BAND[st.d2], [m[0], m[1]], [t[0], t[1]]]);
+      el.querySelector('[data-out="val"]').innerHTML = `= <b>${ohms(val)}</b> ${t[2]} <span class="small muted">(really anywhere from ${ohms(val * (1 - pct))} to ${ohms(val * (1 + pct))})</span>`;
+      el.querySelectorAll('.swatch').forEach((s) => s.classList.toggle('on', +s.getAttribute('data-v') === st[s.getAttribute('data-g')]));
+    }
+    el.addEventListener('click', (e) => {
+      const s = e.target.closest('.swatch');
+      if (s) { st[s.getAttribute('data-g')] = +s.getAttribute('data-v'); sfx('tap'); update(); return; }
+      if (e.target.closest('[data-in="go"]')) {
+        const v = parseFloat(el.querySelector('[data-in="rev"]').value);
+        if (!(v >= 0.1)) return;
+        const b = bandsFor(v);
+        st.d1 = BAND.findIndex((x) => x[0] === b[0][0]);
+        st.d2 = BAND.findIndex((x) => x[0] === b[1][0]);
+        st.m = MULTS.findIndex((x) => x[0] === b[2][0]);
+        st.t = 0;
+        if (st.d1 < 1 || st.m < 0) return;
+        sfx('correct');
+        update();
+      }
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m2-1: series vs parallel
+  function combo(el) {
+    const st = { r1: 220, r2: 330, mode: 'series' };
+    el.innerHTML = `<div class="wg-combo">
+      <div class="wg-seg" role="group" aria-label="How they are connected">
+        <button class="seg" type="button" data-mode="series">➖ Series (in a line)</button>
+        <button class="seg" type="button" data-mode="parallel">🟰 Parallel (side by side)</button>
+      </div>
+      <svg class="wg-svg wg-combo-svg" viewBox="0 0 320 120" aria-hidden="true"></svg>
+      <div class="wg-fields row">
+        <label>R1 <span><input type="number" min="1" step="any" value="220" data-in="r1"> Ω</span></label>
+        <label>R2 <span><input type="number" min="1" step="any" value="330" data-in="r2"> Ω</span></label>
+      </div>
+      <div class="wg-readout"><p class="wg-big" data-out="total"></p><p class="small" data-out="why"></p></div>
+    </div>`;
+    const svg = el.querySelector('svg');
+    const zig = (x, y, label) => `<path class="wg-res" d="M${x} ${y} l6 0 l4 -9 l8 18 l8 -18 l8 18 l8 -18 l4 9 l6 0"/><text class="wg-label small" x="${x + 26}" y="${y - 14}" text-anchor="middle">${label}</text>`;
+    function update() {
+      const { r1, r2 } = st;
+      const series = st.mode === 'series';
+      const total = series ? r1 + r2 : (r1 * r2) / (r1 + r2);
+      svg.innerHTML = series
+        ? `<path class="wg-loop" d="M10 60 H90 M142 60 H178 M230 60 H310"/>${zig(90, 60, ohms(r1))}${zig(178, 60, ohms(r2))}
+           <circle cx="10" cy="60" r="5" class="wg-contact"/><circle cx="310" cy="60" r="5" class="wg-contact"/>`
+        : `<path class="wg-loop" d="M10 60 H80 M80 30 V90 M80 30 H134 M80 90 H134 M186 30 H240 M186 90 H240 M240 30 V90 M240 60 H310"/>${zig(134, 30, ohms(r1))}${zig(134, 90, ohms(r2))}
+           <circle cx="10" cy="60" r="5" class="wg-contact"/><circle cx="310" cy="60" r="5" class="wg-contact"/>`;
+      el.querySelector('[data-out="total"]').innerHTML = `Total: <b>${ohms(total)}</b>`;
+      el.querySelector('[data-out="why"]').innerHTML = series
+        ? `Series: current has to squeeze through <b>both</b>, one after the other, so they add up: ${sig(r1)} + ${sig(r2)} = ${sig(total)} Ω. Like one long narrow pipe.`
+        : `Parallel: current can take <b>either</b> path, which is easier, so the total is <b>less than the smallest</b>: (${sig(r1)} × ${sig(r2)}) ÷ (${sig(r1)} + ${sig(r2)}) = ${sig(total)} Ω. Like opening a second lane on a road.`;
+      el.querySelectorAll('[data-mode]').forEach((b) => b.classList.toggle('on', b.getAttribute('data-mode') === st.mode));
+    }
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-mode]');
+      if (b) { st.mode = b.getAttribute('data-mode'); sfx('tap'); update(); }
+    });
+    el.addEventListener('input', (e) => {
+      const k = e.target.getAttribute('data-in');
+      const v = parseFloat(e.target.value);
+      if ((k === 'r1' || k === 'r2') && v > 0) { st[k] = v; update(); }
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m2-2: capacitor charging (RC time constant)
+  const CAP_R = [[1000, '1 kΩ'], [10000, '10 kΩ'], [100000, '100 kΩ']];
+  const CAP_C = [[10e-6, '10 µF'], [100e-6, '100 µF'], [470e-6, '470 µF'], [1000e-6, '1000 µF']];
+  function capCharge(el) {
+    const V = 5;
+    const st = { ri: 1, ci: 1, v: 0, anim: null };
+    el.innerHTML = `<div class="wg-cap">
+      <div class="wg-fields row">
+        <label>Resistor <select data-in="r">${CAP_R.map((r, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${r[1]}</option>`).join('')}</select></label>
+        <label>Capacitor <select data-in="c">${CAP_C.map((c, i) => `<option value="${i}" ${i === 1 ? 'selected' : ''}>${c[1]}</option>`).join('')}</select></label>
+      </div>
+      <div class="wg-cap-main">
+        <div class="wg-bucket" aria-hidden="true"><span></span></div>
+        <svg class="wg-graph" viewBox="0 0 320 170" role="img" aria-label="Graph of capacitor voltage over time">
+          <path class="g-axis" d="M36 10 V140 H312"/>
+          <text class="g-txt" x="30" y="16" text-anchor="end">5 V</text>
+          <text class="g-txt" x="30" y="143" text-anchor="end">0</text>
+          <path class="g-grid" d="M36 58 H312"/><text class="g-txt" x="30" y="61" text-anchor="end">63%</text>
+          ${[1, 2, 3, 4, 5].map((k) => `<path class="g-grid" d="M${36 + k * 55} 10 V140"/><text class="g-txt" x="${36 + k * 55}" y="156" text-anchor="middle">${k}τ</text>`).join('')}
+          <path class="g-curve" d=""/>
+          <circle class="g-dot" r="5" cx="36" cy="140"/>
+        </svg>
+      </div>
+      <div class="btn-row"><button class="btn btn-cyan" type="button" data-in="charge">⚡ Charge</button><button class="btn btn-ghost" type="button" data-in="discharge">🔻 Discharge</button></div>
+      <div class="wg-readout"><p class="wg-big">Time constant τ = R × C = <b data-out="tau"></b></p><p data-out="now" class="small"></p></div>
+    </div>`;
+    const curve = el.querySelector('.g-curve');
+    const dot = el.querySelector('.g-dot');
+    const fill = el.querySelector('.wg-bucket span');
+    const tau = () => CAP_R[st.ri][0] * CAP_C[st.ci][0];
+    function fmtT(s) { return s >= 1 ? sig(s) + ' s' : sig(s * 1000) + ' ms'; }
+    function show(v, t, charging) {
+      fill.style.height = (v / V) * 100 + '%';
+      el.querySelector('[data-out="now"]').innerHTML = `Capacitor voltage: <b>${round(v, 2)} V</b> (${Math.round((v / V) * 100)}% full)` +
+        (t != null ? ` after ${fmtT(t)}. ${charging ? 'Filling fast at first, then slower and slower as it gets fuller.' : 'Emptying fast at first, then slower.'}` : '');
+    }
+    function update() {
+      el.querySelector('[data-out="tau"]').textContent = fmtT(tau());
+      curve.setAttribute('d', '');
+      show(st.v, null);
+    }
+    function run(charging) {
+      cancelAnimationFrame(st.anim);
+      const T = tau();
+      const v0 = st.v;
+      const start = performance.now();
+      const PLAY = 3200; // the animation always takes 3.2 s to show 5τ, whatever the real time is
+      const volt = (t) => (charging ? V - (V - v0) * Math.exp(-t / T) : v0 * Math.exp(-t / T));
+      sfx(charging ? 'spark' : 'tap');
+      function frame(now) {
+        if (!el.isConnected) return;
+        const k = Math.min(1, (now - start) / PLAY);
+        const t = k * 5 * T;
+        const v = volt(t);
+        const x = 36 + k * 275;
+        const y = 140 - (v / V) * 130;
+        // redraw the whole curve up to now, so it stays smooth even if frames are skipped
+        let d = '';
+        const steps = Math.max(2, Math.round(k * 80));
+        for (let j = 0; j <= steps; j++) {
+          const kj = (j / steps) * k;
+          d += (j ? ' L' : 'M') + (36 + kj * 275).toFixed(1) + ' ' + (140 - (volt(kj * 5 * T) / V) * 130).toFixed(1);
+        }
+        curve.setAttribute('d', d);
+        dot.setAttribute('cx', x.toFixed(1));
+        dot.setAttribute('cy', y.toFixed(1));
+        st.v = v;
+        show(v, t, charging);
+        if (k < 1) st.anim = requestAnimationFrame(frame);
+      }
+      st.anim = requestAnimationFrame(frame);
+    }
+    el.addEventListener('change', (e) => {
+      const k = e.target.getAttribute('data-in');
+      if (k === 'r') st.ri = +e.target.value;
+      if (k === 'c') st.ci = +e.target.value;
+      update();
+    });
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-in="charge"]')) run(true);
+      if (e.target.closest('[data-in="discharge"]')) run(false);
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m3-1: diode = one-way street
+  function diode(el) {
+    const st = { diodeFwd: true, battFwd: true };
+    el.innerHTML = `<div class="wg-diode">
+      <svg class="wg-svg" viewBox="0 0 360 220" role="img" aria-label="A battery, a diode and a lamp in a loop">
+        <path class="wg-loop" d="M70 85 V40 H290 V180 H70 Z"/>
+        <g class="wg-dots"></g>
+        <rect x="46" y="88" width="48" height="56" rx="6" class="wg-cover"/>
+        <g class="wg-battg" style="transform-origin:70px 116px">
+          <path d="M54 102 H86 M62 112 H78 M54 122 H86 M62 132 H78" class="wg-batt"/>
+          <text x="98" y="104" class="wg-sign pos">+</text><text x="98" y="140" class="wg-sign neg">−</text>
+        </g>
+        <rect x="150" y="22" width="60" height="36" rx="6" class="wg-cover"/>
+        <g class="wg-diodeg" style="transform-origin:180px 40px">
+          <path d="M150 40 H166 M194 40 H210" class="wg-batt"/>
+          <path d="M166 26 L166 54 L192 40 Z" class="wg-diode-tri"/>
+          <path d="M194 25 V55" class="wg-batt"/>
+        </g>
+        <text x="180" y="16" class="wg-label small" text-anchor="middle">diode</text>
+        <circle cx="180" cy="180" r="22" class="wg-lamp-glow"/>
+        <circle cx="180" cy="180" r="15" class="wg-lamp"/>
+        <path d="M172 180 q4 -8 8 0 q4 8 8 0" class="wg-filament"/>
+        <text x="180" y="214" class="wg-label small" text-anchor="middle">lamp</text>
+      </svg>
+      <div class="btn-row">
+        <button class="btn btn-ghost" type="button" data-in="d">🔄 Flip the diode</button>
+        <button class="btn btn-ghost" type="button" data-in="b">🔋 Flip the battery</button>
+      </div>
+      <div class="wg-readout"><p data-out="status" class="wg-status"></p></div>
+    </div>`;
+    const flows = () => st.diodeFwd === st.battFwd;
+    function update() {
+      el.querySelector('.wg-diodeg').style.transform = st.diodeFwd ? '' : 'rotate(180deg)';
+      el.querySelector('.wg-battg').style.transform = st.battFwd ? '' : 'rotate(180deg)';
+      el.classList.toggle('on', flows());
+      el.querySelector('[data-out="status"]').innerHTML = flows()
+        ? '✅ <b>Forward:</b> the triangle points the same way the current wants to go, so it flows. (The diode “charges a toll” of about 0.7 V.)'
+        : '🚫 <b>Reverse:</b> the current is pushing against the arrow. The bouncer says “not on the list”. Nothing flows.';
+    }
+    runDots(el, el.querySelector('.wg-loop'), el.querySelector('.wg-dots'), 22, () => (flows() ? (st.battFwd ? 110 : -110) : 0));
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-in]');
+      if (!b) return;
+      if (b.getAttribute('data-in') === 'd') st.diodeFwd = !st.diodeFwd;
+      if (b.getAttribute('data-in') === 'b') st.battFwd = !st.battFwd;
+      sfx(flows() ? 'correct' : 'wrong');
+      update();
+    });
+    update();
+  }
+
+  // ======================================================================
+  // m3-3: NPN transistor switch (small base current controls a bigger collector current)
+  function transistor(el) {
+    const BETA = 100;
+    const IMAX = (5 - 2 - 0.2) / 220; // LED + 220 Ω on 5 V, transistor fully on ≈ 12.7 mA
+    const st = { ib: 0 }; // µA
+    el.innerHTML = `<div class="wg-trans">
+      <svg class="wg-svg" viewBox="0 0 320 260" role="img" aria-label="NPN transistor switching an LED">
+        <path class="wg-loop thin" d="M150 20 H220 V40 M220 76 V96 M220 132 V156 M220 204 V236 M110 180 H188 M40 180 H70"/>
+        <text class="wg-label small" x="146" y="24" text-anchor="end">+5 V</text>
+        <path class="wg-res" d="M220 40 l0 4 l-8 4 l16 6 l-16 6 l16 6 l-16 6 l8 4 l0 0"/>
+        <text class="wg-label small" x="234" y="62">220 Ω</text>
+        <circle cx="220" cy="112" r="18" class="wg-led-glow"/>
+        <path d="M206 100 H234 L220 122 Z" class="wg-led-tri"/><path d="M206 124 H234" class="wg-batt"/>
+        <text class="wg-label small" x="244" y="116">LED</text>
+        <circle cx="206" cy="180" r="28" class="wg-tr-body"/>
+        <path d="M194 164 V196" class="wg-batt"/>
+        <path d="M194 172 L220 156 M194 188 L220 204" class="wg-batt"/>
+        <path d="M212 194 L220 204 L208 203 Z" fill="#efeaff"/>
+        <text class="wg-label small" x="234" y="160">C</text><text class="wg-label small" x="178" y="172">B</text><text class="wg-label small" x="234" y="212">E</text>
+        <path class="wg-res" d="M70 180 l4 0 l4 -8 l6 16 l6 -16 l6 16 l6 -16 l4 8 l4 0"/>
+        <text class="wg-label small" x="90" y="164" text-anchor="middle">base resistor</text>
+        <circle cx="34" cy="180" r="8" class="wg-src"/>
+        <text class="wg-label small" x="34" y="206" text-anchor="middle">control</text>
+        <path d="M206 236 H234 M210 242 H230 M214 248 H226" class="wg-batt"/>
+        <text class="wg-label small" x="120" y="200" data-out="ibl" text-anchor="middle"></text>
+        <text class="wg-label small" x="262" y="90" data-out="icl"></text>
+      </svg>
+      <div class="wg-controls">
+        <label><span>Base current (the tiny control): <b data-out="ib"></b></span>
+          <input type="range" min="0" max="300" step="5" value="0" data-in="ib" aria-label="Base current in microamps"></label>
+      </div>
+      <div class="wg-readout">
+        <p class="wg-big">Collector current (through the LED): <b data-out="ic"></b></p>
+        <p data-out="status" class="wg-status"></p>
+      </div>
+    </div>`;
+    const out = (k) => el.querySelector(`[data-out="${k}"]`);
+    function update() {
+      const ib = st.ib / 1e6;
+      const ic = Math.min(BETA * ib, IMAX);
+      out('ib').textContent = st.ib + ' µA';
+      out('ibl').textContent = 'Ib = ' + st.ib + ' µA';
+      out('ic').textContent = amps(ic);
+      out('icl').textContent = 'Ic = ' + amps(ic);
+      el.querySelector('.wg-led-glow').style.opacity = (ic / IMAX).toFixed(2);
+      el.querySelector('.wg-src').style.fill = st.ib ? 'var(--lime)' : '#3c3363';
+      let s;
+      if (st.ib === 0) s = '😴 <b>OFF (cutoff):</b> no base current, so no collector current. The switch is open.';
+      else if (BETA * ib < IMAX) s = `📈 <b>Partly on:</b> the collector current is ${BETA} × the base current (${st.ib} µA × ${BETA} = ${amps(BETA * ib)}). Tiny in, big out: that’s <b>amplification</b>.`;
+      else s = '💡 <b>Fully ON (saturated):</b> the transistor is wide open. Now the LED and its resistor decide the current, not the transistor. This is how we use it as a switch.';
+      out('status').innerHTML = s;
+    }
+    el.addEventListener('input', (e) => {
+      if (e.target.getAttribute('data-in') === 'ib') { st.ib = +e.target.value; update(); }
+    });
+    update();
+  }
+
+  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor };
 
   window.Widgets = {
     render: function (el, cfg) {

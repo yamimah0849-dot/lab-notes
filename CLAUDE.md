@@ -99,7 +99,9 @@ local save, and Export/Import backup.
   overlays (MISSION COMPLETE, rank up, goal; each can have a `sound`), Ask Claude, top-bar mute button, soundboard.
 - `js/widgets.js`: interactive lesson widgets, used by sections `{type: 'widget', widget: '<name>'}`:
   `sort` (Safe or Sus game), `meter` (multimeter dial), `joints` (solder joints), `circuit` (animated loop),
-  `ohm` (magic triangle), `ledCalc` (LED resistor + color bands), `power` (magic smoke). Add more with `Widgets.add`.
+  `ohm` (magic triangle), `ledCalc` (LED resistor + color bands), `power` (magic smoke), `colorCode` (stripe decoder),
+  `combo` (series/parallel), `capCharge` (RC curve), `diode` (one-way bouncer), `transistor` (NPN switch).
+  `runDots(el, path, group, n, speedFn)` animates current dots around a loop. Add more with `Widgets.add`.
   Shared helpers (`amps`, `watts`, `ohms`, `e12Up`, `bandsFor`, `resistorSvg`) are on `Widgets.helpers`.
 - Section type `{type: 'code', code: '...'}` shows a code block with a Copy button (for Arduino lessons).
 - `data/course.js`: the course map (all modules + lesson titles, which phase builds them), the kit list, and
@@ -139,7 +141,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - [x] Extra (learner's request): anime-style sound effects + Dr. Ohmi babble voice
 - [x] 2. Go live: GitHub Pages, iPhone home-screen install, offline
 - [x] 3. Modules 0-1
-- [ ] 4. Modules 2-3
+- [x] 4. Modules 2-3
 - [ ] 5. Module 4 (Arduino)
 - [ ] 6. Modules 5-6
 - [ ] 7. Final boss (EMG + Muscle Meter page)
@@ -172,3 +174,6 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   m1-2 (Ohm's law), m1-3 (Power), each with 3 oEmbed-verified videos, 5 quiz questions and 1–2 challenges;
   new widgets.js (7 widgets), module-1.js, Falstad links, new sounds (beep, sizzle), sw.js VERSION v2.
   Checked in the built-in browser: all 7 lessons render, widgets work, no horizontal overflow at 375 px.
+- 2026-11-12: Phase 4 built: module-2.js (resistor color code + series/parallel + voltage divider, capacitors,
+  inductors + kickback) and module-3.js (diodes, LEDs, NPN transistors), 5 new widgets, verified videos
+  (incl. GreatScott #22), Falstad example links. sw.js VERSION v3. All 6 lessons render without errors.
