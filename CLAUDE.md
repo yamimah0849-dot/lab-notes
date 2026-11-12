@@ -104,6 +104,9 @@ local save, and Export/Import backup.
   Google Fonts are cache-first. **When adding a file (e.g. `data/module-1.js`), add it to `PRECACHE` and bump `VERSION`.**
 - `.nojekyll`: tells GitHub Pages to serve files as-is.
 - Testing note: the app's built-in browser pane can't register service workers. Test offline mode in real Chrome.
+- **Shared origin warning:** every GitHub Pages project of this user lives on `yamimah0849-dot.github.io`, so they
+  share localStorage and Cache Storage (another project uses caches named `partslab-*`). Always prefix storage keys
+  and cache names with `labnotes` and never clear storage wholesale.
 
 ## Lesson format (example: `data/module-0.js`)
 `{ minutes, intro, summary, sections, search, videos, quiz, challenges }`
@@ -123,7 +126,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - [x] Setup: folder, Git, CLAUDE.md, GitHub repo, first push
 - [x] 1. App shell: theme, mascot, dashboard, XP/ranks/streak/goal, export/import, 1 sample lesson
 - [x] Extra (learner's request): anime-style sound effects + Dr. Ohmi babble voice
-- [ ] 2. Go live: GitHub Pages, iPhone home-screen install, offline
+- [x] 2. Go live: GitHub Pages, iPhone home-screen install, offline
 - [ ] 3. Modules 0-1
 - [ ] 4. Modules 2-3
 - [ ] 5. Module 4 (Arduino)
@@ -151,3 +154,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
   service worker (offline incl. fonts), Settings "Install" section (iPhone Safari steps; Install button on
   Chrome/Edge), offline/online toasts. Verified in real Chrome: 15 app files + 9 font files cached, and a full
   reload with the server switched off still shows the lesson with the comic fonts.
+  With the learner's OK, merged to `main`, pushed, and switched on GitHub Pages (main, root). Live at
+  https://yamimah0849-dot.github.io/lab-notes/ with the service worker active (scope `/lab-notes/`).
+- 2026-11-12: The learner added Lab Notes to the iPhone home screen and confirmed it works. Phase 2 done.
+  Next: Phase 3 (Module 0 lessons m0-1, m0-3, m0-4 and Module 1 lessons m1-1, m1-2, m1-3).
