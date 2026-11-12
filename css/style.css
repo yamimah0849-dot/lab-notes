@@ -993,6 +993,94 @@ label.btn { position: relative; }
 .wg-led-glow { fill: #ff2d2d; opacity: 0; filter: blur(7px); transition: opacity .2s; }
 .wg-src { fill: #3c3363; stroke: var(--text); stroke-width: 2; transition: fill .2s; }
 
+/* Arduino Uno pin map */
+.wg-uno { display: grid; gap: 14px; }
+@media (min-width: 760px) { .wg-uno { grid-template-columns: 1.4fr 1fr; align-items: start; } }
+.uno-board { fill: #12708f; stroke: #0a4a60; stroke-width: 3; }
+.uno-usb { fill: #b9bec9; stroke: #6d7380; stroke-width: 2; }
+.uno-jack { fill: #1b1b1b; stroke: #555; stroke-width: 2; }
+.uno-chip { fill: #1e1e24; stroke: #555; stroke-width: 1.5; }
+.uno-chip-t { fill: #cfd3dc; font: 700 9px var(--font-body); }
+.uno-led { fill: #ffb347; }
+.uno-small { fill: #d7f2fb; font: 800 7px var(--font-body); }
+.uno-logo { fill: #ffffff; font: 400 26px var(--font-display); letter-spacing: 2px; opacity: .9; }
+.uno-pin { cursor: pointer; }
+.uno-pin rect { fill: #1b1b1b; stroke: #9fdcf0; stroke-width: 1; }
+.uno-pin text { fill: #ffffff; font: 800 7px var(--font-body); }
+.uno-pin:hover rect, .uno-pin.on rect { fill: var(--yellow); stroke: var(--ink); }
+.uno-pin.on text { fill: var(--yellow); }
+.uno-pin .uno-usb, .uno-pin .uno-jack, .uno-pin .uno-chip { stroke-width: 2; }
+.uno-pin.on .uno-usb, .uno-pin.on .uno-jack, .uno-pin.on .uno-chip { fill: var(--yellow); }
+.uno-pin text.uno-chip-t { font-size: 9px; }
+
+/* PWM */
+.wg-pwm-row { display: flex; gap: 16px; align-items: center; }
+.wg-pwm-led { flex: none; width: 40px; height: 40px; border-radius: 50% 50% 10px 10px; background: #ff2d2d; border: 2px solid rgba(255, 255, 255, .5); }
+
+/* LCD simulator */
+.lcd-screen {
+  display: grid;
+  gap: 4px;
+  width: max-content;
+  max-width: 100%;
+  margin: 6px auto 12px;
+  padding: 14px 16px;
+  border: 6px solid #1d2a5c;
+  border-radius: 10px;
+  background: #2f5be0;
+  box-shadow: inset 0 0 20px rgba(0, 0, 0, .35), 0 0 18px rgba(80, 140, 255, .35);
+}
+.lcd-row { display: grid; grid-template-columns: repeat(16, 1fr); gap: 2px; }
+.lcd-row span {
+  display: grid;
+  place-items: center;
+  width: clamp(13px, 4.6vw, 22px);
+  height: clamp(20px, 7vw, 32px);
+  background: rgba(255, 255, 255, .08);
+  color: #eef4ff;
+  font: 700 clamp(.8rem, 3.6vw, 1.15rem) 'Courier New', monospace;
+  text-shadow: 0 0 4px rgba(255, 255, 255, .6);
+}
+.wg-lcd-sim input[type="text"] {
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font: 700 1rem 'Courier New', monospace;
+}
+.code.lcd-code, .code.serial-out { padding-top: 14px; }
+
+/* buzzer keys */
+.keys { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0; }
+.key {
+  display: grid;
+  flex: 1 1 40px;
+  min-width: 40px;
+  min-height: 74px;
+  padding: 8px 4px;
+  border: 2px solid var(--ink);
+  border-radius: 0 0 10px 10px;
+  background: #f4f2ff;
+  color: var(--ink);
+  font: 400 1.3rem var(--font-display);
+  cursor: pointer;
+  place-items: end center;
+  box-shadow: 0 4px 0 #b9b3e0;
+}
+.key small { font: 700 .62rem var(--font-body); color: #555; }
+.key:active { transform: translateY(3px); box-shadow: none; background: var(--yellow); }
+
+/* wiring tables */
+.pin-table { width: 100%; margin: 10px 0 14px; border-collapse: collapse; font-size: .92rem; }
+.pin-table th, .pin-table td { padding: 6px 10px; border-bottom: 1px solid var(--line); text-align: left; }
+.pin-table th { color: var(--cyan); font-size: .78rem; letter-spacing: .08em; text-transform: uppercase; }
+.pin-table tr:nth-child(even) td { background: rgba(255, 255, 255, .03); }
+
+/* serial monitor demo */
+.serial-out { min-height: 96px; white-space: pre-wrap; }
+
 /* code blocks (Arduino lessons) */
 .code-box { position: relative; }
 .code-copy { position: absolute; top: 8px; right: 8px; min-height: 36px; padding: 6px 12px; font-size: .95rem; }

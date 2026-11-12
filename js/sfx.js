@@ -249,9 +249,23 @@
     } catch (e) { console.warn('voice failed', e); }
   }
 
+  // Play a list of notes like a passive buzzer (square wave). notes = [[freqHz, ms], ...]; freq 0 = rest.
+  function playNotes(notes, gapFactor) {
+    const c = wake();
+    if (!c || !prefs.sfx) return 0;
+    let at = 0.02;
+    notes.forEach(function (n) {
+      const dur = n[1] / 1000;
+      if (n[0] > 0) tone({ type: 'square', f: n[0], at: at, dur: dur, vol: 0.09, lp: 4000, attack: 0.005 });
+      at += dur * (gapFactor || 1.3);
+    });
+    return at;
+  }
+
   window.SFX = {
     supported: !!AC,
     play: play,
+    playNotes: playNotes,
     babble: babble,
     wake: wake,
     get: function (key) { return !!prefs[key]; },

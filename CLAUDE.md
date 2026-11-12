@@ -101,7 +101,12 @@ local save, and Export/Import backup.
   `sort` (Safe or Sus game), `meter` (multimeter dial), `joints` (solder joints), `circuit` (animated loop),
   `ohm` (magic triangle), `ledCalc` (LED resistor + color bands), `power` (magic smoke), `colorCode` (stripe decoder),
   `combo` (series/parallel), `capCharge` (RC curve), `diode` (one-way bouncer), `transistor` (NPN switch).
+  `uno` (pin map), `adc` (analogRead), `pwm` (duty cycle), `baud` (mismatch gibberish), `lcd` (16x2 simulator),
+  `melody` (passive-buzzer jingle + keys; uses `SFX.playNotes`).
   `runDots(el, path, group, n, speedFn)` animates current dots around a loop. Add more with `Widgets.add`.
+- Arduino pin plan used across lessons: LED 9, water sensor + on 7 / S on A0, buzzer 8, servo 9, DC motor PWM 6
+  (Servo library disables PWM on 9/10), LCD RS 12, E 11, D4–D7 on 5, 4, 3, 2. Simulators: Wokwi
+  (https://wokwi.com/projects/new/arduino-uno, no account to run) and Tinkercad Arduino starters.
   Shared helpers (`amps`, `watts`, `ohms`, `e12Up`, `bandsFor`, `resistorSvg`) are on `Widgets.helpers`.
 - Section type `{type: 'code', code: '...'}` shows a code block with a Copy button (for Arduino lessons).
 - `data/course.js`: the course map (all modules + lesson titles, which phase builds them), the kit list, and
@@ -142,7 +147,7 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - [x] 2. Go live: GitHub Pages, iPhone home-screen install, offline
 - [x] 3. Modules 0-1
 - [x] 4. Modules 2-3
-- [ ] 5. Module 4 (Arduino)
+- [x] 5. Module 4 (Arduino)
 - [ ] 6. Modules 5-6
 - [ ] 7. Final boss (EMG + Muscle Meter page)
 - [ ] Wrap-up: full check + laptop and iPhone instructions
@@ -177,3 +182,6 @@ merge it into `main` and push. GitHub Pages will publish from `main`.
 - 2026-11-12: Phase 4 built: module-2.js (resistor color code + series/parallel + voltage divider, capacitors,
   inductors + kickback) and module-3.js (diodes, LEDs, NPN transistors), 5 new widgets, verified videos
   (incl. GreatScott #22), Falstad example links. sw.js VERSION v3. All 6 lessons render without errors.
+- 2026-11-12: Phase 5 built: module-4.js (Uno + IDE + Blink, analogRead/water sensor/PWM, Serial Monitor/Plotter,
+  buzzers + raw 16x2 LCD with a fixed contrast divider + servo + DC motor with transistor and flyback diode),
+  6 new widgets, copyable code blocks, Wokwi/Tinkercad challenges. sw.js VERSION v4.

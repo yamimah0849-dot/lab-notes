@@ -844,7 +844,202 @@
     update();
   }
 
-  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor };
+  // ======================================================================
+  // m4-1: Arduino Uno pin map
+  const UNO_INFO = {
+    d01: ['Pins 0 (RX) and 1 (TX)', 'Digital pins, but the USB connection uses them to talk to your computer. Leave them empty, or uploads and the Serial Monitor get confused.'],
+    dig: ['Digital pins 2–13', 'Each one is either <b>HIGH</b> (5 V) or <b>LOW</b> (0 V). Use them as outputs (LEDs, buzzers, transistors) or inputs (buttons). Max about <b>20 mA</b> each, so always use a resistor for LEDs.'],
+    pwm: ['PWM pins (~3, 5, 6, 9, 10, 11)', 'Digital pins with a <b>~</b> mark. Besides on/off, they can fake “in-between” power with <code>analogWrite()</code>: dim LEDs, control motor speed.'],
+    d13: ['Pin 13 (built-in LED)', 'A normal digital pin that also has a tiny LED on the board, labeled “L”. Perfect for your first Blink!'],
+    gnd: ['GND (ground)', 'The 0 V “home base”. Every circuit you connect needs a wire back to GND. All GND pins are connected together.'],
+    aref: ['AREF', 'Reference voltage for advanced analog tricks. Leave it alone for now.'],
+    i2c: ['SDA / SCL', 'A two-wire bus for talking to fancy chips (like I2C displays). Same as A4 / A5 on the Uno. Not needed in this course.'],
+    v5: ['5V', 'Gives out 5 volts (from USB or the power jack). Powers your breadboard + rail, sensors, LCD and small servo.'],
+    v33: ['3.3V', 'Gives out 3.3 volts, for parts that want less than 5 V. Only a small current available.'],
+    vin: ['Vin', 'Power <b>input</b> when you use a battery or adapter on the jack (7–12 V). Not for your 5 V parts!'],
+    reset: ['RESET', 'Connect it to GND to restart the program. Same as pressing the reset button.'],
+    ioref: ['IOREF', 'Tells add-on boards that this Uno works at 5 V. You won’t use it.'],
+    ana: ['Analog pins A0–A5', 'They <b>measure</b> a voltage from 0 to 5 V and turn it into a number from 0 to 1023 with <code>analogRead()</code>. Your water sensor and EMG sensor go here.'],
+    usb: ['USB port', 'Power + programming + Serial Monitor, all through one cable.'],
+    jack: ['Power jack', 'For a 7–12 V adapter or battery when the Arduino runs without a computer.'],
+    chip: ['The brain (ATmega328P)', 'The microcontroller: a tiny computer that runs your program in a loop, forever, about 16 million steps per second.'],
+  };
+  function uno(el) {
+    const top = [['SCL', 'i2c'], ['SDA', 'i2c'], ['AREF', 'aref'], ['GND', 'gnd'], ['13', 'd13'], ['12', 'dig'], ['~11', 'pwm'], ['~10', 'pwm'], ['~9', 'pwm'], ['8', 'dig'],
+      ['7', 'dig'], ['~6', 'pwm'], ['~5', 'pwm'], ['4', 'dig'], ['~3', 'pwm'], ['2', 'dig'], ['TX 1', 'd01'], ['RX 0', 'd01']];
+    const pwr = [['IOREF', 'ioref'], ['RESET', 'reset'], ['3.3V', 'v33'], ['5V', 'v5'], ['GND', 'gnd'], ['GND', 'gnd'], ['Vin', 'vin']];
+    const ana = ['A0', 'A1', 'A2', 'A3', 'A4', 'A5'].map((a) => [a, 'ana']);
+    // labels are tilted (like the printing on a real board) so neighbours don't overlap
+    const pin = (x, y, p, labelBelow) => {
+      const ty = labelBelow ? y + 11 : y - 10;
+      return `<g class="uno-pin" data-k="${p[1]}"><rect x="${x - 6}" y="${y - 6}" width="12" height="12" rx="2"/>
+        <text x="${x}" y="${ty}" text-anchor="${labelBelow ? 'start' : 'start'}" transform="rotate(${labelBelow ? 55 : -55} ${x} ${ty})">${p[0]}</text></g>`;
+    };
+    let pins = '';
+    top.forEach((p, i) => { pins += pin(52 + i * 14 + (i >= 10 ? 8 : 0), 40, p, false); });
+    pwr.forEach((p, i) => { pins += pin(120 + i * 14, 206, p, true); });
+    ana.forEach((p, i) => { pins += pin(236 + i * 14, 206, p, true); });
+    el.innerHTML = `<div class="wg-uno">
+      <svg class="wg-svg" viewBox="0 0 330 240" role="img" aria-label="Arduino Uno board. Tap a pin to learn what it does.">
+        <rect x="20" y="22" width="300" height="196" rx="12" class="uno-board"/>
+        <g class="uno-pin" data-k="usb"><rect x="6" y="56" width="44" height="40" rx="4" class="uno-usb"/><text x="28" y="80" text-anchor="middle">USB</text></g>
+        <g class="uno-pin" data-k="jack"><rect x="6" y="150" width="40" height="36" rx="4" class="uno-jack"/><text x="26" y="172" text-anchor="middle">DC</text></g>
+        <g class="uno-pin" data-k="chip"><rect x="150" y="104" width="130" height="34" rx="3" class="uno-chip"/><text x="215" y="126" text-anchor="middle" class="uno-chip-t">ATmega328P</text></g>
+        <circle cx="96" cy="62" r="4" class="uno-led"/><text x="106" y="66" class="uno-small">L</text>
+        <text x="80" y="130" class="uno-logo">UNO</text>
+        <text x="172" y="72" text-anchor="middle" class="uno-small">DIGITAL (PWM ~)</text>
+        <text x="160" y="186" text-anchor="middle" class="uno-small">POWER</text><text x="271" y="186" text-anchor="middle" class="uno-small">ANALOG IN</text>
+        ${pins}
+      </svg>
+      <div class="wg-info" aria-live="polite"><h4>Tap any pin</h4><p>Each group of pins has its own job. Tap one to find out what it does.</p></div>
+    </div>`;
+    el.addEventListener('click', (e) => {
+      const g = e.target.closest('[data-k]');
+      if (!g) return;
+      const k = g.getAttribute('data-k');
+      el.querySelectorAll('.uno-pin').forEach((p) => p.classList.toggle('on', p.getAttribute('data-k') === k));
+      const info = UNO_INFO[k];
+      el.querySelector('.wg-info').innerHTML = `<h4>${info[0]}</h4><p>${info[1]}</p>`;
+      sfx('spark');
+    });
+  }
+
+  // ======================================================================
+  // m4-2: analogRead (ADC) explorer
+  function adc(el) {
+    el.innerHTML = `<div class="wg-adc">
+      <div class="wg-controls"><label><span>Voltage on pin A0: <b data-out="v">2.50 V</b></span>
+        <input type="range" min="0" max="5" step="0.01" value="2.5" data-in="v" aria-label="Voltage on A0"></label></div>
+      <div class="bar big"><span data-out="bar"></span></div>
+      <p class="wg-big">analogRead(A0) → <b data-out="n">512</b> <span class="small muted">(out of 1023)</span></p>
+      <p class="small" data-out="how"></p>
+    </div>`;
+    function update() {
+      const v = parseFloat(el.querySelector('[data-in="v"]').value);
+      const n = Math.round((v / 5) * 1023);
+      el.querySelector('[data-out="v"]').textContent = v.toFixed(2) + ' V';
+      el.querySelector('[data-out="n"]').textContent = n;
+      el.querySelector('[data-out="bar"]').style.width = (n / 1023) * 100 + '%';
+      el.querySelector('[data-out="how"]').innerHTML = `Math: ${v.toFixed(2)} V ÷ 5 V × 1023 ≈ <b>${n}</b>. Each step is about 4.9 mV, so the Arduino can tell apart about 1024 different voltage levels.`;
+    }
+    el.addEventListener('input', update);
+    update();
+  }
+
+  // ======================================================================
+  // m4-2: PWM explorer
+  function pwm(el) {
+    el.innerHTML = `<div class="wg-pwm">
+      <div class="wg-controls"><label><span>analogWrite(9, <b data-out="val">64</b>)</span>
+        <input type="range" min="0" max="255" step="1" value="64" data-in="d" aria-label="PWM value"></label></div>
+      <div class="wg-pwm-row">
+        <svg class="wg-graph" viewBox="0 0 320 110" aria-hidden="true">
+          <path class="g-axis" d="M20 10 V90 H316"/>
+          <text class="g-txt" x="16" y="22" text-anchor="end">5V</text><text class="g-txt" x="16" y="92" text-anchor="end">0</text>
+          <path class="g-curve" data-out="wave" d=""/>
+        </svg>
+        <span class="wg-pwm-led" aria-hidden="true"></span>
+      </div>
+      <p class="small" data-out="how"></p>
+    </div>`;
+    function update() {
+      const d = +el.querySelector('[data-in="d"]').value;
+      const duty = d / 255;
+      el.querySelector('[data-out="val"]').textContent = d;
+      let p = 'M20 90';
+      const period = 59;
+      for (let k = 0; k < 5; k++) {
+        const x0 = 20 + k * period;
+        const xOn = x0 + duty * period;
+        if (duty > 0) p += ` L${x0} 20 L${xOn.toFixed(1)} 20 L${xOn.toFixed(1)} 90`;
+        p += ` L${x0 + period} 90`;
+      }
+      el.querySelector('[data-out="wave"]').setAttribute('d', p);
+      const led = el.querySelector('.wg-pwm-led');
+      led.style.opacity = (0.15 + duty * 0.85).toFixed(2);
+      led.style.boxShadow = `0 0 ${Math.round(duty * 30)}px #ff2d2d`;
+      el.querySelector('[data-out="how"]').innerHTML = `The pin is ON <b>${Math.round(duty * 100)}%</b> of the time (about 490 times a second). Average voltage ≈ 5 × ${d} ÷ 255 = <b>${round(5 * duty, 2)} V</b>. Your eye averages the flicker into “${duty < 0.2 ? 'dim' : duty < 0.7 ? 'medium' : 'bright'}”.`;
+    }
+    el.addEventListener('input', update);
+    update();
+  }
+
+  // ======================================================================
+  // m4-3: what a wrong baud rate looks like
+  function baud(el) {
+    const MSG = 'Lab online! Dr. Ohmi says hi.';
+    el.innerHTML = `<div class="wg-baud">
+      <p class="small">The sketch says <code>Serial.begin(9600)</code>. Pick the speed set in the Serial Monitor:</p>
+      <div class="wg-seg">${[300, 9600, 115200].map((b) => `<button class="seg" type="button" data-b="${b}">${b} baud</button>`).join('')}</div>
+      <pre class="code serial-out" aria-live="polite"></pre>
+    </div>`;
+    function garble(s) {
+      const junk = '�ÿþ¿§¤¥ÆØ¬¦×Þ~^`|{}';
+      return s.split('').map(() => junk[Math.floor(Math.random() * junk.length)]).join('').slice(0, s.length);
+    }
+    function set(b) {
+      el.querySelectorAll('[data-b]').forEach((x) => x.classList.toggle('on', +x.getAttribute('data-b') === b));
+      el.querySelector('.serial-out').textContent = b === 9600
+        ? MSG + '\nSeconds since start: 0\nSeconds since start: 1\nSeconds since start: 2'
+        : garble(MSG) + '\n' + garble('Seconds since start: 0') + '\n' + garble('Seconds since start: 1') + '\n\n(Speeds don’t match, so the bits are read at the wrong times: gibberish!)';
+    }
+    el.addEventListener('click', (e) => {
+      const b = e.target.closest('[data-b]');
+      if (b) { set(+b.getAttribute('data-b')); sfx(+b.getAttribute('data-b') === 9600 ? 'correct' : 'wrong'); }
+    });
+    set(115200);
+  }
+
+  // ======================================================================
+  // m4-4: 16x2 LCD simulator
+  function lcd(el) {
+    el.innerHTML = `<div class="wg-lcd-sim">
+      <div class="lcd-screen" aria-label="LCD preview"><div class="lcd-row" data-row="0"></div><div class="lcd-row" data-row="1"></div></div>
+      <div class="wg-fields">
+        <label>Row 0 (top) <input type="text" maxlength="16" value="LAB NOTES ONLINE" data-in="0" spellcheck="false"></label>
+        <label>Row 1 (bottom) <input type="text" maxlength="16" value="Hi from Dr.Ohmi!" data-in="1" spellcheck="false"></label>
+      </div>
+      <pre class="code lcd-code"></pre>
+    </div>`;
+    function cells(s) {
+      const t = (s + ' '.repeat(16)).slice(0, 16);
+      return t.split('').map((c) => `<span>${c === ' ' ? '&nbsp;' : esc(c)}</span>`).join('');
+    }
+    function update() {
+      const r0 = el.querySelector('[data-in="0"]').value;
+      const r1 = el.querySelector('[data-in="1"]').value;
+      el.querySelector('[data-row="0"]').innerHTML = cells(r0);
+      el.querySelector('[data-row="1"]').innerHTML = cells(r1);
+      const q = (s) => s.replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      el.querySelector('.lcd-code').textContent = `lcd.setCursor(0, 0);  // column 0, row 0\nlcd.print("${q(r0)}");\nlcd.setCursor(0, 1);  // column 0, row 1\nlcd.print("${q(r1)}");`;
+    }
+    el.addEventListener('input', update);
+    update();
+  }
+
+  // ======================================================================
+  // m4-4: passive buzzer jingle + note keys
+  const JINGLE = [[659, 150], [784, 150], [1047, 300], [988, 150], [784, 150], [880, 300], [698, 150], [880, 150], [784, 600]];
+  const KEYS = [['C', 523], ['D', 587], ['E', 659], ['F', 698], ['G', 784], ['A', 880], ['B', 988], ['C', 1047]];
+  function melody(el) {
+    el.innerHTML = `<div class="wg-melody">
+      <div class="btn-row"><button class="btn btn-primary" type="button" data-play>▶ Play the Lab Notes jingle</button></div>
+      <p class="small muted">This is what <code>tone()</code> sounds like on a passive buzzer: a square wave at each frequency.</p>
+      <div class="keys">${KEYS.map((k, i) => `<button type="button" class="key" data-f="${k[1]}">${k[0]}<small>${k[1]} Hz</small></button>`).join('')}</div>
+      <p class="small" data-out="note">Tap a key: higher frequency = higher pitch.</p>
+    </div>`;
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('[data-play]')) { window.SFX && window.SFX.playNotes(JINGLE); return; }
+      const k = e.target.closest('[data-f]');
+      if (k) {
+        const f = +k.getAttribute('data-f');
+        window.SFX && window.SFX.playNotes([[f, 250]]);
+        el.querySelector('[data-out="note"]').innerHTML = `<code>tone(8, ${f}, 250);</code> → the buzzer vibrates ${f} times per second.`;
+      }
+    });
+  }
+
+  const REGISTRY = { sort, meter, joints, circuit, ohm, ledCalc, power, colorCode, combo, capCharge, diode, transistor, uno, adc, pwm, baud, lcd, melody };
 
   window.Widgets = {
     render: function (el, cfg) {
